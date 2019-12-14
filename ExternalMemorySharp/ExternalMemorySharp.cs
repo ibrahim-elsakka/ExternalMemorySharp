@@ -91,9 +91,6 @@ namespace ExternalMemory
             // Read Offsets
             foreach (ExternalOffset offset in unrealOffsets)
             {
-                //if (offset.Name == "_dwStandingStatus")
-                //    Debug.WriteLine("");
-
                 // if it's Base Offset
                 if (offset.Dependency == ExternalOffset.None)
                 {

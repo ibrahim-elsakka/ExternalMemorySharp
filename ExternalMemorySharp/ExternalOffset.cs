@@ -86,8 +86,8 @@ namespace ExternalMemory
             {
                 var ret = new Vector2
                 {
-                    X = BitConverter.ToSingle(Value, 0x0),
-                    Y = BitConverter.ToSingle(Value, 0x4)
+                    X = BitConverter.ToSingle(Value, 0x00),
+                    Y = BitConverter.ToSingle(Value, 0x04)
                 };
                 return (T)(object)ret;
             }
@@ -95,9 +95,9 @@ namespace ExternalMemory
             {
                 var ret = new Vector3
                 {
-                    X = BitConverter.ToSingle(Value, 0x0),
-                    Y = BitConverter.ToSingle(Value, 0x4),
-                    Z = BitConverter.ToSingle(Value, 0x8)
+                    X = BitConverter.ToSingle(Value, 0x00),
+                    Y = BitConverter.ToSingle(Value, 0x04),
+                    Z = BitConverter.ToSingle(Value, 0x08)
                 };
                 return (T)(object)ret;
             }
@@ -108,7 +108,7 @@ namespace ExternalMemory
                     X = BitConverter.ToSingle(Value, 0x0),
                     Y = BitConverter.ToSingle(Value, 0x4),
                     Z = BitConverter.ToSingle(Value, 0x8),
-                    W = BitConverter.ToSingle(Value, 0x12)
+                    W = BitConverter.ToSingle(Value, 0xC)
                 };
                 return (T)(object)ret;
             }

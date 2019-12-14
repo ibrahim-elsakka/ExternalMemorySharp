@@ -9,7 +9,6 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
     {
         public List<T> Items { get; } = new List<T>();
         private readonly bool _gameIs64Bit;
-        private IntPtr _address;
 
         #region Offsets
         private ExternalOffset _data;
@@ -18,7 +17,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         #endregion
 
         #region Props
-        public global::ExternalMemory.ExternalMemorySharp Reader { get; }
+        public ExternalMemorySharp Reader { get; }
         public int MaxCountTArrayCanCarry { get; } = 0x20000;
 
         public IntPtr Data => _data.GetValue<IntPtr>();
@@ -26,17 +25,15 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public int Max => _max.GetValue<int>();
         #endregion
 
-        public TArray(global::ExternalMemory.ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit) : base(address)
+        public TArray(ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit) : base(address)
         {
             Reader = emsInstance;
             _gameIs64Bit = gameIs64Bit;
-            _address = address;
         }
-        public TArray(global::ExternalMemory.ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit, int maxCountTArrayCanCarry) : base(address)
+        public TArray(ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit, int maxCountTArrayCanCarry) : base(address)
         {
             Reader = emsInstance;
             _gameIs64Bit = gameIs64Bit;
-            _address = address;
             MaxCountTArrayCanCarry = maxCountTArrayCanCarry;
         }
 
@@ -50,7 +47,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
         public void UpdateAddress(IntPtr newAddress)
         {
-            _address = newAddress;
+            BaseAddress = newAddress;
         }
         public void Update()
         {
@@ -75,7 +72,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         private bool Read()
         {
-            if (!Reader.ReadClass(this, _address))
+            if (!Reader.ReadClass(this, BaseAddress))
                 return false;
 
             if (Count > MaxCountTArrayCanCarry)
