@@ -105,10 +105,10 @@ namespace ExternalMemory
             {
                 var ret = new Vector4
                 {
-                    X = BitConverter.ToSingle(Value, 0x0),
-                    Y = BitConverter.ToSingle(Value, 0x4),
-                    Z = BitConverter.ToSingle(Value, 0x8),
-                    W = BitConverter.ToSingle(Value, 0xC)
+                    X = BitConverter.ToSingle(Value, 0x00),
+                    Y = BitConverter.ToSingle(Value, 0x04),
+                    Z = BitConverter.ToSingle(Value, 0x08),
+                    W = BitConverter.ToSingle(Value, 0x0C)
                 };
                 return (T)(object)ret;
             }
