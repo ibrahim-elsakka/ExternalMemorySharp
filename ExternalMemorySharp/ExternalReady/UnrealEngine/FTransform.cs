@@ -30,7 +30,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         {
             _rotation = new ExternalOffset(ExternalOffset.None, 0x00, OffsetType.Vector4);
             _translation = new ExternalOffset(ExternalOffset.None, 0x10, OffsetType.Vector3);
-            _scale3D = new ExternalOffset(ExternalOffset.None, 0x20, OffsetType.Vector3);
+            _scale3D = new ExternalOffset(ExternalOffset.None, 0x1C, OffsetType.Vector3);
         }
 
         public void UpdateAddress(IntPtr newAddress)

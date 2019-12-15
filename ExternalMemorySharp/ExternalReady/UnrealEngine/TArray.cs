@@ -62,8 +62,15 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             Reader.ReadBytes(Data, Items.Count * distance, out byte[] tArrayData);
             for (int i = 0; i < Items.Count; i++)
             {
+                int bIndex = i * distance;
+
                 // Get Item Address
-                IntPtr itemAddress = (IntPtr)(_gameIs64Bit ? BitConverter.ToInt64(tArrayData, i * distance) : BitConverter.ToInt32(tArrayData, i * distance));
+                IntPtr itemAddress;
+
+                if (_gameIs64Bit)
+                    itemAddress = (IntPtr)BitConverter.ToUInt64(tArrayData, bIndex);
+                else
+                    itemAddress = (IntPtr)BitConverter.ToUInt32(tArrayData, bIndex);
 
                 // Update current item
                 Items[i].BaseAddress = itemAddress;
