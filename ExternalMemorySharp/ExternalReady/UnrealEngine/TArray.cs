@@ -104,6 +104,13 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
             return true;
         }
+        public bool IsValid()
+        {
+            if (Count == 0 && !Read())
+                return false;
+
+            return (Max > Count) && BaseAddress != IntPtr.Zero;
+        }
 
         #region Indexer
         public T this[int index] => Items[index];
