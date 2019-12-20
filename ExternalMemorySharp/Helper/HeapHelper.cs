@@ -142,23 +142,9 @@ namespace ExternalMemory.Helper
             }
             return stuff;
         }
-        public static T ToStructure<T>(this byte[] bytes) where T : struct
+        public static T ToStructure<T>(this byte[] bytes)
         {
             return (T)ToStructure(bytes, typeof(T));
-        }
-        public static T ToClass<T>(this byte[] bytes) where T : class
-        {
-            T stuff;
-            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            try
-            {
-                stuff = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
-            }
-            finally
-            {
-                handle.Free();
-            }
-            return stuff;
         }
 
         public static byte[] ToByteArray<T>(this T obj)

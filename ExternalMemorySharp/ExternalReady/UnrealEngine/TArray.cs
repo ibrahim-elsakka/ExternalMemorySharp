@@ -4,20 +4,22 @@ using System.Linq;
 
 namespace ExternalMemory.ExternalReady.UnrealEngine
 {
-    // ToDo: Add Function CallBack To Get New Address Every Time Read Called
+    // ReSharper disable once InconsistentNaming
+    /// <summary>
+    /// TArray Class To Fit UnrealEngine, It's only Support Pointer To <see cref="ExternalClass"/> Only
+    /// </summary>
     public class TArray<T> : ExternalClass where T : ExternalClass, new()
     {
         public List<T> Items { get; } = new List<T>();
         private readonly bool _gameIs64Bit;
 
         #region Offsets
-        private ExternalOffset _data;
-        private ExternalOffset _count;
-        private ExternalOffset _max;
+        private ExternalOffset<IntPtr> _data;
+        private ExternalOffset<int> _count;
+        private ExternalOffset<int> _max;
         #endregion
 
         #region Props
-        public ExternalMemorySharp Reader { get; }
         public int MaxCountTArrayCanCarry { get; } = 0x20000;
 
         public IntPtr Data => _data.GetValue<IntPtr>();
@@ -25,38 +27,36 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public int Max => _max.GetValue<int>();
         #endregion
 
-        public TArray(ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit) : base(address)
+        public TArray(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
         {
-            Reader = emsInstance;
-            _gameIs64Bit = gameIs64Bit;
+            _gameIs64Bit = emsInstance.Is64BitGame;
         }
-        public TArray(ExternalMemorySharp emsInstance, IntPtr address, bool gameIs64Bit, int maxCountTArrayCanCarry) : base(address)
+        public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : base(emsInstance, address)
         {
-            Reader = emsInstance;
-            _gameIs64Bit = gameIs64Bit;
+            _gameIs64Bit = emsInstance.Is64BitGame;
             MaxCountTArrayCanCarry = maxCountTArrayCanCarry;
         }
 
         protected override void InitOffsets()
         {
             int curOff = 0x0;
-            _data = new ExternalOffset(ExternalOffset.None, curOff, OffsetType.IntPtr); curOff += _gameIs64Bit ? 0x8 : 0x4;
-            _count = new ExternalOffset(ExternalOffset.None, curOff, OffsetType.Integer); curOff += 0x4;
-            _max = new ExternalOffset(ExternalOffset.None, curOff, OffsetType.Integer);
+            _data = new ExternalOffset<IntPtr>(ExternalOffset.None, curOff); curOff += _gameIs64Bit ? 0x8 : 0x4;
+            _count = new ExternalOffset<int>(ExternalOffset.None, curOff); curOff += 0x4;
+            _max = new ExternalOffset<int>(ExternalOffset.None, curOff);
         }
 
         public void UpdateAddress(IntPtr newAddress)
         {
             BaseAddress = newAddress;
         }
-        public void Update()
+        public bool Update()
         {
             // Read Array (Base and Size)
             if (!Read())
-                return;
+                return false;
 
-            // Pointer Address + Some Junk Two Int
-            int distance = (_gameIs64Bit ? 8 : 4) + 0x8;
+            // Pointer Address
+            int distance = _gameIs64Bit ? 8 : 4;
 
             // Get TArray Data
             Reader.ReadBytes(Data, Items.Count * distance, out byte[] tArrayData);
@@ -76,6 +76,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 Items[i].BaseAddress = itemAddress;
                 Reader.ReadClass(Items[i], itemAddress);
             }
+
+            return true;
         }
         private bool Read()
         {
@@ -94,7 +96,11 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 }
                 else if (Items.Count < Count)
                 {
-                    Enumerable.Range(Items.Count, Count).ToList().ForEach(num => Items.Add((T)Activator.CreateInstance(typeof(T), (IntPtr)0x0)));
+                    Enumerable.Range(Items.Count, Count).ToList().ForEach(num =>
+                    {
+                        var instance = (T)Activator.CreateInstance(typeof(T), Reader, (IntPtr)0x0);
+                        Items.Add(instance);
+                    });
                 }
             }
             catch

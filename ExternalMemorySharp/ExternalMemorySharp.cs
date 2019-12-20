@@ -60,32 +60,25 @@ namespace ExternalMemory
             foreach (var unrealOffset in unrealOffsets)
                 unrealOffset.RemoveValueAndData();
         }
-
-        public bool ReadClass<T>(T instance, IntPtr address) where T : ExternalClass
+        private static List<ExternalOffset> GetOffsets<T>(T instance) where T : ExternalClass
         {
             // Collect Data From Offsets
             List<ExternalOffset> unrealOffsets = instance.Offsets
                 .Where(f => f != null)
                 .ToList();
-            unrealOffsets.ForEach(offset => offset.IsGame64Bit = Is64BitGame);
 
             // Sort By Dependencies
             unrealOffsets = unrealOffsets.Sort(off => unrealOffsets.Where(offset => offset == off.Dependency));
 
-            if (address.ToInt64() <= 0)
-            {
-                // Clear All Class Offset
-                RemoveValueData(unrealOffsets);
-                return false;
-            }
+            return unrealOffsets;
+        }
 
-            // Read Full Class
-            if (!ReadBytes(address, instance.ClassSize, out byte[] fullClassBytes))
-            {
-                // Clear All Class Offset
-                RemoveValueData(unrealOffsets);
-                return false;
-            }
+        public bool ReadClass<T>(T instance, byte[] fullClassBytes) where T : ExternalClass
+        {
+            // Collect Offsets
+            List<ExternalOffset> unrealOffsets = GetOffsets(instance);
+
+            // Set Bytes
             instance.FullClassBytes = fullClassBytes;
 
             // Read Offsets
@@ -96,7 +89,7 @@ namespace ExternalMemory
                 {
                     offset.SetValue(instance.FullClassBytes);
                 }
-                else if(offset.Dependency.DataAssigned)
+                else if (offset.Dependency.DataAssigned)
                 {
                     offset.SetValue(offset.Dependency.Data);
                 }
@@ -114,7 +107,7 @@ namespace ExternalMemory
                 if (offset.OffsetType == OffsetType.PString)
                 {
                     // Get Pointer
-                    IntPtr pStr = offset.GetValue<IntPtr>();
+                    IntPtr pStr = ((ExternalOffset<IntPtr>)offset).GetValue();
                     bool isUni = true;
 
                     if (pStr != IntPtr.Zero)
@@ -136,12 +129,34 @@ namespace ExternalMemory
                 if (pointedSize == 0)
                     continue;
 
-                if (!ReadBytes(offset.GetValue<IntPtr>(), pointedSize, out byte[] dataBytes))
+                if (!ReadBytes(((ExternalOffset<IntPtr>)offset).GetValue(), pointedSize, out byte[] dataBytes))
                     continue;
                 offset.SetData(dataBytes);
             }
 
             return true;
+        }
+        public bool ReadClass<T>(T instance, IntPtr address) where T : ExternalClass
+        {
+            // Collect Offsets
+            List<ExternalOffset> unrealOffsets = GetOffsets(instance);
+
+            if (address.ToInt64() <= 0)
+            {
+                // Clear All Class Offset
+                RemoveValueData(unrealOffsets);
+                return false;
+            }
+
+            // Read Full Class
+            if (!ReadBytes(address, instance.ClassSize, out byte[] fullClassBytes))
+            {
+                // Clear All Class Offset
+                RemoveValueData(unrealOffsets);
+                return false;
+            }
+
+            return ReadClass(instance, fullClassBytes);
         }
 
         public void ReadClass<T>(T instance, int address) where T : ExternalClass, new() => ReadClass(instance, (IntPtr)address);

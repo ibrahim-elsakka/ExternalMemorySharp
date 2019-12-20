@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
+using System.Runtime.InteropServices;
 using ExternalMemory.Helper;
 
 namespace ExternalMemory
@@ -10,15 +10,34 @@ namespace ExternalMemory
     public enum OffsetType
     {
         None,
+        Custom,
+
         Byte,
         Integer,
         Float,
         IntPtr,
         String,
-        PString,
-        Vector2,
-        Vector3,
-        Vector4,
+        PString
+    }
+
+    [DebuggerDisplay("{" + nameof(Name) + "}")]
+    public class ExternalOffset<T> : ExternalOffset
+    {
+        public ExternalOffset(ExternalOffset dependency, int offset) : base(dependency, offset, OffsetType.Custom)
+        {
+            if (typeof(T) == typeof(IntPtr) || typeof(T) == typeof(UIntPtr))
+            {
+                OffsetType = OffsetType.IntPtr;
+            }
+
+            var size = Marshal.SizeOf<T>();
+            ReSetValueSize(size);
+        }
+
+        public T GetValue()
+        {
+            return GetValue<T>();
+        }
     }
 
     [DebuggerDisplay("{" + nameof(Name) + "}")]
@@ -28,7 +47,7 @@ namespace ExternalMemory
 
         public ExternalOffset Dependency { get; }
         public int Offset { get; }
-        public OffsetType OffsetType { get; }
+        public OffsetType OffsetType { get; protected set; }
 
         /// <summary>
         /// Offset Name
@@ -43,8 +62,9 @@ namespace ExternalMemory
         /// Data It's Point To
         /// </summary>
         internal byte[] Data { get; set; }
-        internal bool IsGame64Bit { get; set; } = false;
         internal bool DataAssigned { get; private set; }
+        internal int Size => Value.Length;
+        public bool IsGame64Bit { get; internal set; }
 
         public ExternalOffset(ExternalOffset dependency, int offset, OffsetType offsetType)
         {
@@ -54,22 +74,13 @@ namespace ExternalMemory
 
             SetValueSize();
         }
-        private void SetValueSize()
+
+        /// <summary>
+        /// Create Offset With Custom Size
+        /// </summary>
+        public ExternalOffset(ExternalOffset dependency, int offset, int size) : this(dependency, offset, OffsetType.Custom)
         {
-            Value = OffsetType switch
-            {
-                OffsetType.None => new byte[1],
-                OffsetType.Byte => new byte[1],
-                OffsetType.Integer => new byte[4],
-                OffsetType.Float => new byte[4],
-                OffsetType.IntPtr => new byte[IsGame64Bit ? 8 : 4],
-                OffsetType.String => new byte[IsGame64Bit ? 8 : 4],
-                OffsetType.PString => new byte[IsGame64Bit ? 8 : 4],
-                OffsetType.Vector2 => new byte[4 * 2],
-                OffsetType.Vector3 => new byte[4 * 3],
-                OffsetType.Vector4 => new byte[4 * 4],
-                _ => throw new ArgumentOutOfRangeException($"SetValueSize Can't set value size"),
-            };
+            ReSetValueSize(size);
         }
 
         public T GetValue<T>()
@@ -82,38 +93,31 @@ namespace ExternalMemory
             {
                 return (T)(object)(IntPtr)(IsGame64Bit ? GetValue<long>() : GetValue<int>());
             }
-            if (typeof(T) == typeof(Vector2))
+            if (typeof(T) == typeof(UIntPtr))
             {
-                var ret = new Vector2
-                {
-                    X = BitConverter.ToSingle(Value, 0x00),
-                    Y = BitConverter.ToSingle(Value, 0x04)
-                };
-                return (T)(object)ret;
-            }
-            if (typeof(T) == typeof(Vector3))
-            {
-                var ret = new Vector3
-                {
-                    X = BitConverter.ToSingle(Value, 0x00),
-                    Y = BitConverter.ToSingle(Value, 0x04),
-                    Z = BitConverter.ToSingle(Value, 0x08)
-                };
-                return (T)(object)ret;
-            }
-            if (typeof(T) == typeof(Vector4))
-            {
-                var ret = new Vector4
-                {
-                    X = BitConverter.ToSingle(Value, 0x00),
-                    Y = BitConverter.ToSingle(Value, 0x04),
-                    Z = BitConverter.ToSingle(Value, 0x08),
-                    W = BitConverter.ToSingle(Value, 0x0C)
-                };
-                return (T)(object)ret;
+                return (T)(object)(UIntPtr)(IsGame64Bit ? GetValue<ulong>() : GetValue<uint>());
             }
 
             return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
+        }
+
+        private void SetValueSize()
+        {
+            Value = OffsetType switch
+            {
+                OffsetType.None => new byte[1],
+                OffsetType.Custom => new byte[1],
+
+                OffsetType.Byte => new byte[1],
+                OffsetType.Integer => new byte[4],
+                OffsetType.Float => new byte[4],
+
+                OffsetType.String => new byte[2],
+                OffsetType.IntPtr => new byte[IsGame64Bit ? 8 : 4],
+                OffsetType.PString => new byte[IsGame64Bit ? 8 : 4],
+
+                _ => throw new ArgumentOutOfRangeException($"SetValueSize Can't set value size"),
+            };
         }
         internal void ReSetValueSize(int newSize)
         {
@@ -144,7 +148,7 @@ namespace ExternalMemory
                 Array.Clear(Data, 0, Data.Length);
         }
 
-        public int GetStringSizeFromBytes(byte[] bytes, bool isUnicode)
+        internal int GetStringSizeFromBytes(byte[] bytes, bool isUnicode)
         {
             int retSize = 0;
             int charSize = isUnicode ? 2 : 1;
