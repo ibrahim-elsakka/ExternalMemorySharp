@@ -107,7 +107,7 @@ namespace ExternalMemory
                 if (offset.OffsetType == OffsetType.PString)
                 {
                     // Get Pointer
-                    IntPtr pStr = ((ExternalOffset<IntPtr>)offset).GetValue();
+                    IntPtr pStr = offset.GetValue<IntPtr>();
                     bool isUni = true;
 
                     if (pStr != IntPtr.Zero)

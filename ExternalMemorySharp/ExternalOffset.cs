@@ -171,7 +171,10 @@ namespace ExternalMemory
         {
             string[] chunks = hexString.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries);
             int offset = int.Parse(chunks[0].Replace("0x", ""), NumberStyles.HexNumber);
-            OffsetType type = (OffsetType)Enum.Parse(typeof(OffsetType), chunks[1]);
+            bool enumGood = Enum.TryParse(chunks[1], true, out OffsetType type);
+
+            if (!enumGood)
+                throw new Exception("Enum Bad Value.");
 
             return new ExternalOffset(dependency, offset, type);
         }

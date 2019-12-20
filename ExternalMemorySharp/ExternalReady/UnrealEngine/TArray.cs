@@ -45,11 +45,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             _max = new ExternalOffset<int>(ExternalOffset.None, curOff);
         }
 
-        public void UpdateAddress(IntPtr newAddress)
-        {
-            BaseAddress = newAddress;
-        }
-        public bool Update()
+        public override bool UpdateData()
         {
             // Read Array (Base and Size)
             if (!Read())
@@ -73,8 +69,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                     itemAddress = (IntPtr)BitConverter.ToUInt32(tArrayData, bIndex);
 
                 // Update current item
-                Items[i].BaseAddress = itemAddress;
-                Reader.ReadClass(Items[i], itemAddress);
+                Items[i].UpdateAddress(itemAddress);
+                Items[i].UpdateData();
             }
 
             return true;

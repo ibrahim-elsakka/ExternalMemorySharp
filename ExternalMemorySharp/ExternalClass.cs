@@ -8,12 +8,12 @@ namespace ExternalMemory
 {
     public abstract class ExternalClass
     {
-        internal ExternalMemorySharp Reader { get; }
+        public ExternalMemorySharp Reader { get; }
         internal List<ExternalOffset> Offsets { get; }
         internal int ClassSize { get; set; }
         internal byte[] FullClassBytes { get; set; }
 
-        public IntPtr BaseAddress { get; set; }
+        public IntPtr BaseAddress { get; private set; }
 
         protected ExternalClass(ExternalMemorySharp emsInstance, IntPtr address)
         {
@@ -47,5 +47,14 @@ namespace ExternalMemory
         }
 
         protected abstract void InitOffsets();
+
+        public virtual void UpdateAddress(IntPtr newAddress)
+        {
+            BaseAddress = newAddress;
+        }
+        public virtual bool UpdateData()
+        {
+            return Reader.ReadClass(this, BaseAddress);
+        }
     }
 }

@@ -29,14 +29,5 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             _translation = new ExternalOffset<Vector3>(ExternalOffset.None, 0x10);
             _scale3D = new ExternalOffset<Vector3>(ExternalOffset.None, 0x1C);
         }
-
-        public void UpdateAddress(IntPtr newAddress)
-        {
-            BaseAddress = newAddress;
-        }
-        public void Update()
-        {
-            Reader.ReadClass(this, BaseAddress);
-        }
     }
 }
