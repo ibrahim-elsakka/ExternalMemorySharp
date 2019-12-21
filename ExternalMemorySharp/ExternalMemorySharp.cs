@@ -140,16 +140,28 @@ namespace ExternalMemory
                     offset.SetData(dataBytes);
                 }
 
-                // Nested External Class (For Now I Support Pointer Of Type Only)
+                // Nested External Class
                 else if (offset.OffsetType == OffsetType.ExternalClass)
                 {
-                    // Get Address Of Nested Class
-                    IntPtr valPtr = offset.GetValue<IntPtr>();
+                    if (offset.ExternalClassIsPointer)
+                    {
+                        // Get Address Of Nested Class
+                        IntPtr valPtr = offset.GetValue<IntPtr>();
 
-                    // Read Nested Class
-                    offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
-                    if (!ReadClass(offset.ExternalClassObject, valPtr))
-                        throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                        offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
+
+                        // Read Nested Class
+                        if (!ReadClass(offset.ExternalClassObject, valPtr))
+                            throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                    }
+                    else
+                    {
+                        offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
+
+                        // Read Nested Class
+                        if (!ReadClass(offset.ExternalClassObject, offset.Value))
+                            throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                    }
                 }
                 #endregion
             }

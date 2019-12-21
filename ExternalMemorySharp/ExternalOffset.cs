@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -26,7 +25,25 @@ namespace ExternalMemory
 
     public class ExternalOffset<T> : ExternalOffset where T : new()
     {
+        public ExternalOffset(int offset) : this(None, offset) {}
+        public ExternalOffset(int offset, bool externalClassIsPointer) : this(None, offset, externalClassIsPointer) {}
+
         public ExternalOffset(ExternalOffset dependency, int offset) : base(dependency, offset, OffsetType.Custom)
+        {
+            Init();
+        }
+        public ExternalOffset(ExternalOffset dependency, int offset, bool externalClassIsPointer) : base(dependency, offset, OffsetType.ExternalClass)
+        {
+            if (!typeof(T).IsSubclassOf(typeof(ExternalClass)))
+                throw new Exception("This Constructor For `ExternalClass` Types Only.");
+
+            ExternalClassType = typeof(T);
+            ExternalClassIsPointer = externalClassIsPointer;
+
+            Init();
+        }
+
+        private void Init()
         {
             int size = 0;
             if (typeof(T) == typeof(IntPtr) || typeof(T) == typeof(UIntPtr))
@@ -35,8 +52,10 @@ namespace ExternalMemory
             }
             else if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
             {
-                OffsetType = OffsetType.ExternalClass;
-                ExternalClassType = typeof(T);
+                // OffsetType Set On Other Constructor If It's `ExternalClass`
+                if (OffsetType != OffsetType.ExternalClass)
+                    throw new Exception("Use Other Constructor For `ExternalClass` Types.");
+
                 size = ((ExternalClass)Activator.CreateInstance(typeof(T))).ClassSize;
             }
             else
@@ -58,6 +77,7 @@ namespace ExternalMemory
         public int Offset { get; }
         public OffsetType OffsetType { get; protected set; }
 
+        #region ExternalClass
         /// <summary>
         /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
         /// </summary>
@@ -67,6 +87,12 @@ namespace ExternalMemory
         /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
         /// </summary>
         internal ExternalClass ExternalClassObject { get; set; }
+
+        /// <summary>
+        /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
+        /// </summary>
+        internal bool ExternalClassIsPointer { get; set; }
+        #endregion
 
         /// <summary>
         /// MemoryReader Used To Read This Offset
@@ -93,6 +119,7 @@ namespace ExternalMemory
         internal int Size => Value.Length;
         internal bool IsGame64Bit => Ems?.Is64BitGame ?? false;
 
+        public ExternalOffset(int offset, OffsetType offsetType) : this(None, offset, offsetType) {}
         public ExternalOffset(ExternalOffset dependency, int offset, OffsetType offsetType)
         {
             Dependency = dependency;
@@ -138,6 +165,7 @@ namespace ExternalMemory
             {
                 OffsetType.None => new byte[1],
                 OffsetType.Custom => new byte[1],
+                OffsetType.ExternalClass => new byte[1],
 
                 OffsetType.Byte => new byte[1],
                 OffsetType.Integer => new byte[4],

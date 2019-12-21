@@ -36,7 +36,9 @@ namespace ExternalMemory
 
                     // If It's 32bit Game Then Pointer Is 4Byte
                     if (curOffset.OffsetType == OffsetType.IntPtr && !curOffset.IsGame64Bit)
-                        curOffset.ReSetValueSize(4);
+                        curOffset.ReSetValueSize(0x4);
+                    else if (curOffset.OffsetType == OffsetType.ExternalClass && curOffset.ExternalClassIsPointer)
+                        curOffset.ReSetValueSize(curOffset.IsGame64Bit ? 0x8 : 0x4);
 
                     return curOffset;
                 })
@@ -46,12 +48,26 @@ namespace ExternalMemory
             ClassSize = Utils.GetDependenciesSize(ExternalOffset.None, Offsets);
         }
 
-        protected abstract void InitOffsets();
+        /// <summary>
+        /// Override this function to init Offsets Of Your Class
+        /// </summary>
+        protected virtual void InitOffsets()
+        {
+        }
 
+        /// <summary>
+        /// Update <see cref="BaseAddress"/> Of This Class
+        /// </summary>
+        /// <param name="newAddress"></param>
         public virtual void UpdateAddress(IntPtr newAddress)
         {
             BaseAddress = newAddress;
         }
+
+        /// <summary>
+        /// Read Data And Set It On This Class
+        /// </summary>
+        /// <returns></returns>
         public virtual bool UpdateData()
         {
             return Reader.ReadClass(this, BaseAddress);
