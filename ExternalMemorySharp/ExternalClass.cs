@@ -32,7 +32,7 @@ namespace ExternalMemory
 
                     // Set Info
                     curOffset.Name = f.Name;
-                    curOffset.IsGame64Bit = emsInstance.Is64BitGame;
+                    curOffset.Ems = emsInstance;
 
                     // If It's 32bit Game Then Pointer Is 4Byte
                     if (curOffset.OffsetType == OffsetType.IntPtr && !curOffset.IsGame64Bit)

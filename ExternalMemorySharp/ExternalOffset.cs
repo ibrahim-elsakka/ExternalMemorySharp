@@ -11,6 +11,10 @@ namespace ExternalMemory
     {
         None,
         Custom,
+        /// <summary>
+        /// DON'T USE, It's For <see cref="ExternalOffset{T}"/> Only
+        /// </summary>
+        ExternalClass,
 
         Byte,
         Integer,
@@ -20,27 +24,32 @@ namespace ExternalMemory
         PString
     }
 
-    [DebuggerDisplay("{" + nameof(Name) + "}")]
-    public class ExternalOffset<T> : ExternalOffset
+    public class ExternalOffset<T> : ExternalOffset where T : new()
     {
         public ExternalOffset(ExternalOffset dependency, int offset) : base(dependency, offset, OffsetType.Custom)
         {
+            int size = 0;
             if (typeof(T) == typeof(IntPtr) || typeof(T) == typeof(UIntPtr))
             {
                 OffsetType = OffsetType.IntPtr;
             }
+            else if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+            {
+                OffsetType = OffsetType.ExternalClass;
+                ExternalClassType = typeof(T);
+                size = ((ExternalClass)Activator.CreateInstance(typeof(T))).ClassSize;
+            }
+            else
+            {
+                size = Marshal.SizeOf<T>();
+            }
 
-            var size = Marshal.SizeOf<T>();
             ReSetValueSize(size);
         }
 
-        public T GetValue()
-        {
-            return GetValue<T>();
-        }
+        public T GetValue() => GetValue<T>();
     }
 
-    [DebuggerDisplay("{" + nameof(Name) + "}")]
     public class ExternalOffset
     {
         public static ExternalOffset None { get; } = new ExternalOffset(null, 0x0, OffsetType.None);
@@ -50,21 +59,39 @@ namespace ExternalMemory
         public OffsetType OffsetType { get; protected set; }
 
         /// <summary>
+        /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
+        /// </summary>
+        internal Type ExternalClassType { get; set; }
+
+        /// <summary>
+        /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
+        /// </summary>
+        internal ExternalClass ExternalClassObject { get; set; }
+
+        /// <summary>
+        /// MemoryReader Used To Read This Offset
+        /// </summary>
+        internal ExternalMemorySharp Ems { get; set; }
+
+        /// <summary>
         /// Offset Name
         /// </summary>
         internal string Name { get; set; }
+
         /// <summary>
         /// Offset Value As Bytes
         /// </summary>
         internal byte[] Value { get; set; }
+
         /// <summary>
         /// If Offset Is Pointer Then We Need A Place To Store
         /// Data It's Point To
         /// </summary>
         internal byte[] Data { get; set; }
+
         internal bool DataAssigned { get; private set; }
         internal int Size => Value.Length;
-        public bool IsGame64Bit { get; internal set; }
+        internal bool IsGame64Bit => Ems?.Is64BitGame ?? false;
 
         public ExternalOffset(ExternalOffset dependency, int offset, OffsetType offsetType)
         {
@@ -96,6 +123,10 @@ namespace ExternalMemory
             if (typeof(T) == typeof(UIntPtr))
             {
                 return (T)(object)(UIntPtr)(IsGame64Bit ? GetValue<ulong>() : GetValue<uint>());
+            }
+            if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+            {
+                return (T)(object)ExternalClassObject;
             }
 
             return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
@@ -133,6 +164,9 @@ namespace ExternalMemory
 
             // (Dependency == None) Mean it's Base Class Data
             Array.Copy(Dependency == None ? fullDependencyBytes : Dependency.Data, Offset, Value, 0, Value.Length);
+
+            // It's Like Event
+            OnSetValue();
         }
         internal void SetData(byte[] bytes)
         {
@@ -146,6 +180,9 @@ namespace ExternalMemory
                 Array.Clear(Value, 0, Value.Length);
             if (Data != null)
                 Array.Clear(Data, 0, Data.Length);
+        }
+        protected virtual void OnSetValue()
+        {
         }
 
         internal int GetStringSizeFromBytes(byte[] bytes, bool isUnicode)

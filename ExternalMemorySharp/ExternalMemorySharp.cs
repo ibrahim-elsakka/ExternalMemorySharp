@@ -84,6 +84,7 @@ namespace ExternalMemory
             // Read Offsets
             foreach (ExternalOffset offset in unrealOffsets)
             {
+                #region SetValue
                 // if it's Base Offset
                 if (offset.Dependency == ExternalOffset.None)
                 {
@@ -102,8 +103,10 @@ namespace ExternalMemory
                 {
                     throw new Exception("Dependency Data Not Set !!");
                 }
+                #endregion
 
-                // Init Pre-Pointer Types (PString, .., etc)
+                #region Pre-Pointer Types (PString, .., etc)
+                // Init
                 if (offset.OffsetType == OffsetType.PString)
                 {
                     // Get Pointer
@@ -116,22 +119,39 @@ namespace ExternalMemory
                         offset.Value = Utils.StringToBytes(str, isUni);
                     }
                 }
+                #endregion
 
-                // If It's Pointer, Read Pointed Data
-                if (offset.OffsetType != OffsetType.IntPtr)
-                    continue;
+                #region Init For Dependencies
+                // If It's Pointer, Read Pointed Data To Use On Other Offset Dependent On It
+                if (offset.OffsetType == OffsetType.IntPtr)
+                {
+                    // Get Size Of Pointed Data
+                    int pointedSize = Utils.GetDependenciesSize(offset, unrealOffsets);
 
-                // Get Size Of Pointed Data
-                int pointedSize = Utils.GetDependenciesSize(offset, unrealOffsets);
+                    // If Size Is Zero Then It's Usually Dynamic (Unknown Size) Pointer (Like `Data` Member In `TArray`)
+                    // Or Just An Pointer Without Dependencies
+                    if (pointedSize == 0)
+                        continue;
 
-                // If Size Is Zero Then It's Usually Dynamic (Unknown Size) Pointer (Like `Data` Member In `TArray`)
-                // Or Just An Pointer Without Dependencies
-                if (pointedSize == 0)
-                    continue;
+                    // Can't Read Bytes
+                    if (!ReadBytes(offset.GetValue<IntPtr>(), pointedSize, out byte[] dataBytes))
+                        continue;
 
-                if (!ReadBytes(((ExternalOffset<IntPtr>)offset).GetValue(), pointedSize, out byte[] dataBytes))
-                    continue;
-                offset.SetData(dataBytes);
+                    offset.SetData(dataBytes);
+                }
+
+                // Nested External Class (For Now I Support Pointer Of Type Only)
+                else if (offset.OffsetType == OffsetType.ExternalClass)
+                {
+                    // Get Address Of Nested Class
+                    IntPtr valPtr = offset.GetValue<IntPtr>();
+
+                    // Read Nested Class
+                    offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
+                    if (!ReadClass(offset.ExternalClassObject, valPtr))
+                        throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                }
+                #endregion
             }
 
             return true;
