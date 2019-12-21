@@ -1,0 +1,28 @@
+name: .NET Core
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.100
+        
+    - name: Setup Nuget.exe
+      uses: warrenbuckley/Setup-Nuget@v1
+      
+    - name: Build with dotnet
+      run: dotnet build --configuration Release
+      
+    - name: Publish NuGet
+      uses: rohith/publish-nuget@v1.0.3
+      with:
+        # Project (csproj) directory path relative from the root of repository
+        project_dir: "ExternalMemorySharp"
+        # Format of the tag to be created, `*` is placeholder for actual version
+        tag_format: "v*.*.*"
