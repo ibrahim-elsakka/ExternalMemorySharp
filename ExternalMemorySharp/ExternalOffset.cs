@@ -56,6 +56,8 @@ namespace ExternalMemory
                 if (OffsetType != OffsetType.ExternalClass)
                     throw new Exception("Use Other Constructor For `ExternalClass` Types.");
 
+                // If externalClassIsPointer == true, ExternalClass Will Fix The Size Before Calc Class Size
+                // So It's Okay To Leave It Like That
                 size = ((ExternalClass)Activator.CreateInstance(typeof(T))).ClassSize;
             }
             else
