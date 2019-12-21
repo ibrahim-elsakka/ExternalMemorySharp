@@ -7,7 +7,7 @@
     <Company>CorrM</Company>
     <Product>CorrM</Product>
     <Version>1.1.9</Version>
-    <Description>Easy way to read and write memory for apps and games</Description>
+    <Description>Easy way to read and write memory for external apps and games</Description>
     <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
     <Copyright>CorrM</Copyright>
     <PackageProjectUrl>https://github.com/CorrM/ExternalMemorySharp</PackageProjectUrl>
