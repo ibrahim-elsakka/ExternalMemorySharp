@@ -23,7 +23,7 @@ namespace ExternalMemory
         PString
     }
 
-    public class ExternalOffset<T> : ExternalOffset where T : new()
+    public class ExternalOffset<T> : ExternalOffset
     {
         public ExternalOffset(int offset) : this(None, offset) {}
         public ExternalOffset(int offset, bool externalClassIsPointer) : this(None, offset, externalClassIsPointer) {}
@@ -69,6 +69,7 @@ namespace ExternalMemory
         }
 
         public T GetValue() => GetValue<T>();
+        public void SetValue(T value) => SetValue<T>(value);
     }
 
     public class ExternalOffset
@@ -160,6 +161,27 @@ namespace ExternalMemory
 
             return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
         }
+		public void SetValue<T>(T value)
+		{
+			if (typeof(T) == typeof(string))
+			{
+				Value = Utils.StringToBytes(((string)(object)value).Trim('\0'), true);
+			}
+			if (typeof(T) == typeof(IntPtr))
+			{
+				Value = IsGame64Bit ? ((long)(object)value).ToByteArray() : ((int)(object)value).ToByteArray();
+			}
+			if (typeof(T) == typeof(UIntPtr))
+			{
+				Value = IsGame64Bit ? ((ulong)(object)value).ToByteArray() : ((uint)(object)value).ToByteArray();
+			}
+			if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+			{
+				ExternalClassObject = (ExternalClass)(object)value;
+			}
+
+			Value = value.ToByteArray();
+		}
 
         private void SetValueSize()
         {
@@ -184,7 +206,7 @@ namespace ExternalMemory
         {
             Value = new byte[newSize];
         }
-        internal void SetValue(byte[] fullDependencyBytes)
+        internal void SetValueBytes(byte[] fullDependencyBytes)
         {
             // Init Dynamic Size Types (String, .., etc)
             if (OffsetType == OffsetType.String)

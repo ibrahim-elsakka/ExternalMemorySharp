@@ -88,11 +88,11 @@ namespace ExternalMemory
                 // if it's Base Offset
                 if (offset.Dependency == ExternalOffset.None)
                 {
-                    offset.SetValue(instance.FullClassBytes);
+                    offset.SetValueBytes(instance.FullClassBytes);
                 }
                 else if (offset.Dependency.DataAssigned)
                 {
-                    offset.SetValue(offset.Dependency.Data);
+                    offset.SetValueBytes(offset.Dependency.Data);
                 }
                 // Dependency Is Null-Pointer OR Bad Pointer Then Just Skip
                 else if (offset.Dependency.OffsetType == OffsetType.IntPtr && !offset.Dependency.DataAssigned)

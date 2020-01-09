@@ -70,7 +70,7 @@ namespace ExternalMemory
         /// <returns></returns>
         public virtual bool UpdateData()
         {
-            return Reader.ReadClass(this, BaseAddress);
+	        return BaseAddress != IntPtr.Zero && Reader.ReadClass(this, BaseAddress);
         }
     }
 }

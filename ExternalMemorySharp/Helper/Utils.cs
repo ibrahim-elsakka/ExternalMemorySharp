@@ -54,5 +54,5 @@ namespace ExternalMemory.Helper
         {
             return isUnicode ? Encoding.Unicode.GetString(strBytes) : Encoding.ASCII.GetString(strBytes);
         }
-    }
+	}
 }

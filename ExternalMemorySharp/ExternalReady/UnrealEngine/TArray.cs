@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace ExternalMemory.ExternalReady.UnrealEngine
 {
@@ -14,13 +15,15 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         private readonly bool _gameIs64Bit;
 
         #region Offsets
-        private ExternalOffset<IntPtr> _data;
-        private ExternalOffset<int> _count;
-        private ExternalOffset<int> _max;
+        protected ExternalOffset<IntPtr> _data;
+        protected ExternalOffset<int> _count;
+        protected ExternalOffset<int> _max;
         #endregion
 
         #region Props
         public int MaxCountTArrayCanCarry { get; } = 0x20000;
+        public int DelayEvery { get; set; } = 1;
+        public int Delay { get; set; } = 0;
 
         public IntPtr Data => _data.GetValue<IntPtr>();
         public int Count => _count.GetValue<int>();
@@ -31,9 +34,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         {
             _gameIs64Bit = emsInstance.Is64BitGame;
         }
-        public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : base(emsInstance, address)
+        public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : this(emsInstance, address)
         {
-            _gameIs64Bit = emsInstance.Is64BitGame;
             MaxCountTArrayCanCarry = maxCountTArrayCanCarry;
         }
 
@@ -51,6 +53,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             if (!Read())
                 return false;
 
+            int counter = 0;
             // Pointer Address
             int distance = _gameIs64Bit ? 8 : 4;
 
@@ -71,6 +74,13 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 // Update current item
                 Items[i].UpdateAddress(itemAddress);
                 Items[i].UpdateData();
+
+                if (Delay == 0)
+	                continue;
+
+                counter++;
+                if (DelayEvery >= counter)
+	                Thread.Sleep(Delay);
             }
 
             return true;

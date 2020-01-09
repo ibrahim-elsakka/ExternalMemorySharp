@@ -8,9 +8,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
     public class FTransform : ExternalClass
     {
         #region Offsets
-        private ExternalOffset<Vector4> _rotation;
-        private ExternalOffset<Vector3> _translation;
-        private ExternalOffset<Vector3> _scale3D;
+        protected ExternalOffset<Vector4> _rotation;
+        protected ExternalOffset<Vector3> _translation;
+        protected ExternalOffset<Vector3> _scale3D;
         #endregion
 
         #region Props
@@ -19,9 +19,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public Vector3 Scale3D => _scale3D.GetValue();
         #endregion
 
-        public FTransform(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
-        {
-        }
+        public FTransform(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) {}
 
         protected override void InitOffsets()
         {
