@@ -152,7 +152,10 @@ namespace ExternalMemory
 
                         // Read Nested Class
                         if (!ReadClass(offset.ExternalClassObject, valPtr))
-                            throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                        {
+                            // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                            return false;
+                        }
                     }
                     else
                     {
@@ -160,7 +163,10 @@ namespace ExternalMemory
 
                         // Read Nested Class
                         if (!ReadClass(offset.ExternalClassObject, offset.Value))
-                            throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                        {
+                            // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+                            return false;
+                        }
                     }
                 }
                 #endregion

@@ -79,8 +79,11 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 	                continue;
 
                 counter++;
-                if (DelayEvery >= counter)
-	                Thread.Sleep(Delay);
+                if (counter < DelayEvery)
+	                continue;
+
+                Thread.Sleep(Delay);
+                counter = 0;
             }
 
             return true;
