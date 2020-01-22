@@ -69,18 +69,20 @@ namespace ExternalMemory
         }
 
         public T GetValue() => GetValue<T>();
-        public void SetValue(T value) => SetValue<T>(value);
+        internal void SetValue(T value) => SetValue<T>(value);
+        public bool Write(T value) => Write<T>(value);
     }
 
     public class ExternalOffset
     {
         public static ExternalOffset None { get; } = new ExternalOffset(null, 0x0, OffsetType.None);
 
+        internal IntPtr OffsetAddress { get; set; }
         public ExternalOffset Dependency { get; }
         public int Offset { get; }
         public OffsetType OffsetType { get; protected set; }
 
-        #region ExternalClass
+        #region GenricExternalClass
         /// <summary>
         /// DON'T USE, IT FOR `<see cref="ExternalOffset{T}"/>` And `<see cref="OffsetType"/>.ExternalClass` Only
         /// </summary>
@@ -142,47 +144,60 @@ namespace ExternalMemory
 
         public T GetValue<T>()
         {
-            if (typeof(T) == typeof(string))
+            Type tType = typeof(T);
+
+            if (tType == typeof(string))
             {
                 return (T)(object)Utils.BytesToString(Value, true).Trim('\0');
             }
-            if (typeof(T) == typeof(IntPtr))
+            if (tType == typeof(IntPtr))
             {
                 return (T)(object)(IntPtr)(IsGame64Bit ? GetValue<long>() : GetValue<int>());
             }
-            if (typeof(T) == typeof(UIntPtr))
+            if (tType == typeof(UIntPtr))
             {
                 return (T)(object)(UIntPtr)(IsGame64Bit ? GetValue<ulong>() : GetValue<uint>());
             }
-            if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+            if (tType.IsSubclassOf(typeof(ExternalClass)))
             {
                 return (T)(object)ExternalClassObject;
             }
 
-            return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
+            // return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
+            return new MarshalType<T>().ByteArrayToObject(Value);
         }
-		public void SetValue<T>(T value)
+        public bool Write<T>(T value)
+        {
+            if (OffsetAddress == IntPtr.Zero)
+                return false;
+
+            SetValue(value);
+            return Ems.WriteBytes(OffsetAddress, Value);
+        }
+
+        internal void SetValue<T>(T value)
 		{
-			if (typeof(T) == typeof(string))
+            Type tType = typeof(T);
+
+            if (tType == typeof(string))
 			{
 				Value = Utils.StringToBytes(((string)(object)value).Trim('\0'), true);
 			}
-			if (typeof(T) == typeof(IntPtr))
+			if (tType == typeof(IntPtr))
 			{
 				Value = IsGame64Bit ? ((long)(object)value).ToByteArray() : ((int)(object)value).ToByteArray();
 			}
-			if (typeof(T) == typeof(UIntPtr))
+			if (tType == typeof(UIntPtr))
 			{
 				Value = IsGame64Bit ? ((ulong)(object)value).ToByteArray() : ((uint)(object)value).ToByteArray();
 			}
-			if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+			if (tType.IsSubclassOf(typeof(ExternalClass)))
 			{
 				ExternalClassObject = (ExternalClass)(object)value;
 			}
 
-			Value = value.ToByteArray();
+			Value = new MarshalType<T>().ObjectToByteArray(value);
 		}
-
         private void SetValueSize()
         {
             Value = OffsetType switch

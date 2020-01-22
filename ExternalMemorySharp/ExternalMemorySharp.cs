@@ -35,6 +35,10 @@ namespace ExternalMemory
 
             return retState;
         }
+        public bool WriteBytes(IntPtr address, byte[] bytes)
+        {
+            return WriteBytesCallBack(address, bytes);
+        }
         private string ReadString(IntPtr lpBaseAddress, bool isUnicode = false)
         {
             int charSize = isUnicode ? 2 : 1;
@@ -73,26 +77,28 @@ namespace ExternalMemory
             return unrealOffsets;
         }
 
-        public bool ReadClass<T>(T instance, byte[] fullClassBytes) where T : ExternalClass
+        internal bool ReadClass<T>(T instance, IntPtr address, byte[] fullClassBytes) where T : ExternalClass
         {
             // Collect Offsets
-            List<ExternalOffset> unrealOffsets = GetOffsets(instance);
+            List<ExternalOffset> allOffsets = GetOffsets(instance);
 
             // Set Bytes
             instance.FullClassBytes = fullClassBytes;
 
             // Read Offsets
-            foreach (ExternalOffset offset in unrealOffsets)
+            foreach (ExternalOffset offset in allOffsets)
             {
                 #region SetValue
                 // if it's Base Offset
                 if (offset.Dependency == ExternalOffset.None)
                 {
                     offset.SetValueBytes(instance.FullClassBytes);
+                    offset.OffsetAddress = address + offset.Offset;
                 }
                 else if (offset.Dependency.DataAssigned)
                 {
                     offset.SetValueBytes(offset.Dependency.Data);
+                    offset.OffsetAddress += offset.Offset;
                 }
                 // Dependency Is Null-Pointer OR Bad Pointer Then Just Skip
                 else if (offset.Dependency.OffsetType == OffsetType.IntPtr && !offset.Dependency.DataAssigned)
@@ -126,12 +132,16 @@ namespace ExternalMemory
                 if (offset.OffsetType == OffsetType.IntPtr)
                 {
                     // Get Size Of Pointed Data
-                    int pointedSize = Utils.GetDependenciesSize(offset, unrealOffsets);
+                    int pointedSize = Utils.GetDependenciesSize(offset, allOffsets);
 
                     // If Size Is Zero Then It's Usually Dynamic (Unknown Size) Pointer (Like `Data` Member In `TArray`)
                     // Or Just An Pointer Without Dependencies
                     if (pointedSize == 0)
                         continue;
+
+                    // Set Base Address, So i can set correct address for Dependencies offsets `else if (offset.Dependency.DataAssigned)` UP.
+                    // So i just need to add offset to that address
+                    offset.OffsetAddress = offset.GetValue<IntPtr>();
 
                     // Can't Read Bytes
                     if (!ReadBytes(offset.GetValue<IntPtr>(), pointedSize, out byte[] dataBytes))
@@ -143,14 +153,14 @@ namespace ExternalMemory
                 // Nested External Class
                 else if (offset.OffsetType == OffsetType.ExternalClass)
                 {
+                    offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
+
                     if (offset.ExternalClassIsPointer)
                     {
                         // Get Address Of Nested Class
                         IntPtr valPtr = offset.GetValue<IntPtr>();
 
-                        offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
-
-                        // Read Nested Class
+                        // Read Nested Pointer Class
                         if (!ReadClass(offset.ExternalClassObject, valPtr))
                         {
                             // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
@@ -159,10 +169,8 @@ namespace ExternalMemory
                     }
                     else
                     {
-                        offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
-
-                        // Read Nested Class
-                        if (!ReadClass(offset.ExternalClassObject, offset.Value))
+                        // Read Nested Instance Class
+                        if (!ReadClass(offset.ExternalClassObject, address + offset.Offset, offset.Value))
                         {
                             // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
                             return false;
@@ -176,12 +184,10 @@ namespace ExternalMemory
         }
         public bool ReadClass<T>(T instance, IntPtr address) where T : ExternalClass
         {
-            // Collect Offsets
-            List<ExternalOffset> unrealOffsets = GetOffsets(instance);
-
             if (address.ToInt64() <= 0)
             {
                 // Clear All Class Offset
+                List<ExternalOffset> unrealOffsets = GetOffsets(instance);
                 RemoveValueData(unrealOffsets);
                 return false;
             }
@@ -190,14 +196,15 @@ namespace ExternalMemory
             if (!ReadBytes(address, instance.ClassSize, out byte[] fullClassBytes))
             {
                 // Clear All Class Offset
+                List<ExternalOffset> unrealOffsets = GetOffsets(instance);
                 RemoveValueData(unrealOffsets);
                 return false;
             }
 
-            return ReadClass(instance, fullClassBytes);
+            return ReadClass(instance, address, fullClassBytes);
         }
 
-        public void ReadClass<T>(T instance, int address) where T : ExternalClass, new() => ReadClass(instance, (IntPtr)address);
-        public void ReadClass<T>(T instance, long address) where T : ExternalClass, new() => ReadClass(instance, (IntPtr)address);
+        public void ReadClass<T>(T instance, int address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
+        public void ReadClass<T>(T instance, long address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
     }
 }
