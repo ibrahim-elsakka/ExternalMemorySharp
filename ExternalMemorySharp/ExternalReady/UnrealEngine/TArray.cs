@@ -30,6 +30,12 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public int Max => _max.GetValue<int>();
         #endregion
 
+        /// <summary>
+        /// Just use this constract for pass this class as Genric Param <para/>
+        /// Must call '<see cref="ExternalClass.UpdateAddress(IntPtr)"/> <para />
+        /// Must call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> <para />
+        /// </summary>
+        public TArray() : base(null, IntPtr.Zero) { }
         public TArray(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
         {
             _gameIs64Bit = emsInstance.Is64BitGame;
@@ -58,7 +64,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             int distance = _gameIs64Bit ? 8 : 4;
 
             // Get TArray Data
-            Reader.ReadBytes(Data, Items.Count * distance, out byte[] tArrayData);
+            Ems.ReadBytes(Data, Items.Count * distance, out byte[] tArrayData);
             for (int i = 0; i < Items.Count; i++)
             {
                 int bIndex = i * distance;
@@ -90,7 +96,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         private bool Read()
         {
-            if (!Reader.ReadClass(this, BaseAddress))
+            if (!Ems.ReadClass(this, BaseAddress))
                 return false;
 
             if (Count > MaxCountTArrayCanCarry)
@@ -107,7 +113,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 {
                     Enumerable.Range(Items.Count, Count).ToList().ForEach(num =>
                     {
-                        var instance = (T)Activator.CreateInstance(typeof(T), Reader, (IntPtr)0x0);
+                        var instance = (T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0);
                         Items.Add(instance);
                     });
                 }

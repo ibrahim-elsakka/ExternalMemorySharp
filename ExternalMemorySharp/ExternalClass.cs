@@ -8,7 +8,7 @@ namespace ExternalMemory
 {
     public abstract class ExternalClass
     {
-        public ExternalMemorySharp Reader { get; }
+        public ExternalMemorySharp Ems { get; private set; }
         internal List<ExternalOffset> Offsets { get; }
         internal int ClassSize { get; set; }
         internal byte[] FullClassBytes { get; set; }
@@ -17,7 +17,7 @@ namespace ExternalMemory
 
         protected ExternalClass(ExternalMemorySharp emsInstance, IntPtr address)
         {
-            Reader = emsInstance;
+            Ems = emsInstance;
             BaseAddress = address;
 
             // ReSharper disable once VirtualMemberCallInConstructor
@@ -65,12 +65,20 @@ namespace ExternalMemory
         }
 
         /// <summary>
+        /// Update Memory Reader/Writer
+        /// </summary>
+        /// <param name="externalMemorySharp">New External Memory Sharp Class That's Will Used To Read And Write</param>
+        public void UpdateReader(ExternalMemorySharp externalMemorySharp)
+        {
+            Ems = externalMemorySharp;
+        }
+
+        /// <summary>
         /// Read Data And Set It On This Class
         /// </summary>
-        /// <returns></returns>
         public virtual bool UpdateData()
         {
-	        return BaseAddress != IntPtr.Zero && Reader.ReadClass(this, BaseAddress);
+	        return BaseAddress != IntPtr.Zero && Ems.ReadClass(this, BaseAddress);
         }
     }
 }

@@ -164,7 +164,7 @@ namespace ExternalMemory
             }
 
             // return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
-            return new MarshalType<T>().ByteArrayToObject(Value);
+            return Value.Length == 0 ? Activator.CreateInstance<T>() : new MarshalType<T>().ByteArrayToObject(Value);
         }
         public bool Write<T>(T value)
         {
@@ -179,6 +179,9 @@ namespace ExternalMemory
 
         internal void SetValue<T>(T value)
 		{
+            if (value == null)
+                throw new ArgumentNullException("'value' Can't be null.");
+
             Type tType = typeof(T);
 
             if (tType == typeof(string))

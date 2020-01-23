@@ -72,6 +72,7 @@ namespace ExternalMemory
                 .ToList();
 
             // Sort By Dependencies
+            unrealOffsets = unrealOffsets.OrderBy(off => off.Offset).ToList();
             unrealOffsets = unrealOffsets.Sort(off => unrealOffsets.Where(offset => offset == off.Dependency));
 
             return unrealOffsets;
@@ -88,6 +89,11 @@ namespace ExternalMemory
             // Read Offsets
             foreach (ExternalOffset offset in allOffsets)
             {
+                #region Checks
+                if (offset.Dependency != null && offset.Dependency.OffsetType != OffsetType.IntPtr && offset.Dependency != ExternalOffset.None)
+                    throw new ArgumentException("Dependency can only be pointer (IntPtr) or 'ExternalOffset.None'");
+                #endregion
+
                 #region SetValue
                 // if it's Base Offset
                 if (offset.Dependency == ExternalOffset.None)

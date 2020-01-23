@@ -14,11 +14,29 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         #endregion
 
         #region Props
-        public Vector4 Rotation => _rotation.GetValue();
-        public Vector3 Translation => _translation.GetValue();
-        public Vector3 Scale3D => _scale3D.GetValue();
+        public Vector4 Rotation
+        {
+            get => _rotation.GetValue();
+            set => _rotation.Write(value);
+        }
+        public Vector3 Translation
+        {
+            get => _translation.GetValue();
+            set => _translation.Write(value);
+        }
+        public Vector3 Scale3D
+        {
+            get => _scale3D.GetValue();
+            set => _scale3D.Write(value);
+        }
         #endregion
 
+        /// <summary>
+        /// Just use this constract for pass this class as Genric Param <para/>
+        /// Must call '<see cref="ExternalClass.UpdateAddress(IntPtr)"/> <para />
+        /// Must call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> <para />
+        /// </summary>
+        public FTransform() : base(null, IntPtr.Zero) {}
         public FTransform(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) {}
 
         protected override void InitOffsets()
