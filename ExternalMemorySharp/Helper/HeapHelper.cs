@@ -71,11 +71,8 @@ namespace ExternalMemory.Helper
 
             ~StringAllocer()
             {
-                if (Ptr == IntPtr.Zero)
-                    return;
-
-                Marshal.FreeHGlobal(Ptr);
-                Ptr = IntPtr.Zero;
+                // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+                Dispose(false);
             }
 
             /// <summary>
@@ -105,16 +102,11 @@ namespace ExternalMemory.Helper
                     case StringType.Unicode:
                         ManagedString = Marshal.PtrToStringUni(Ptr);
                         break;
+                    default:
+                        return false;
                 }
 
                 return true;
-            }
-
-            public void Dispose()
-            {
-                Marshal.FreeHGlobal(Ptr);
-                Ptr = IntPtr.Zero;
-                GC.SuppressFinalize(this);
             }
 
             public static implicit operator IntPtr(StringAllocer w)
@@ -126,6 +118,35 @@ namespace ExternalMemory.Helper
             {
                 return w.ManagedString;
             }
+
+            #region IDisposable Support
+            private bool disposedValue = false; // To detect redundant calls
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!disposedValue)
+                {
+                    if (disposing)
+                    {
+                        // TODO: dispose managed state (managed objects).
+                    }
+
+                    if (Ptr == IntPtr.Zero)
+                        return;
+
+                    Marshal.FreeHGlobal(Ptr);
+                    Ptr = IntPtr.Zero;
+
+                    disposedValue = true;
+                }
+            }
+
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+            #endregion
         }
 
         public static object ToStructure(this byte[] bytes, Type structType)

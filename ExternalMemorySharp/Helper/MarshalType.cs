@@ -110,7 +110,8 @@ namespace ExternalMemory.Helper
                     return BitConverter.GetBytes((uint)(object)obj);
                 case TypeCode.UInt64:
                     return BitConverter.GetBytes((ulong)(object)obj);
-
+                default:
+                    break;
             }
             // Check if it's not a common type
             // Allocate a block of unmanaged memory
@@ -146,6 +147,8 @@ namespace ExternalMemory.Helper
                                 return (T)(object)new IntPtr(BitConverter.ToInt32(byteArray, index));
                             case 8:
                                 return (T)(object)new IntPtr(BitConverter.ToInt64(byteArray, index));
+                            default:
+                                break;
                         }
                     }
                     break;
@@ -173,6 +176,8 @@ namespace ExternalMemory.Helper
                     return (T)(object)BitConverter.ToUInt32(byteArray, index);
                 case TypeCode.UInt64:
                     return (T)(object)BitConverter.ToUInt64(byteArray, index);
+                default:
+                    break;
             }
 
             // Allocate a block of unmanaged memory
