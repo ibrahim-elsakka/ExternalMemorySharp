@@ -204,7 +204,7 @@ namespace ExternalMemory
             return ReadClass(instance, address, fullClassBytes);
         }
 
-        public void ReadClass<T>(T instance, int address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
-        public void ReadClass<T>(T instance, long address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
+        public bool ReadClass<T>(T instance, int address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
+        public bool ReadClass<T>(T instance, long address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
     }
 }

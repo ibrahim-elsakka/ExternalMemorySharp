@@ -169,7 +169,9 @@ namespace ExternalMemory
         public bool Write<T>(T value)
         {
             if (OffsetAddress == IntPtr.Zero)
+            {
                 return false;
+            }
 
             SetValue(value);
             return Ems.WriteBytes(OffsetAddress, Value);
