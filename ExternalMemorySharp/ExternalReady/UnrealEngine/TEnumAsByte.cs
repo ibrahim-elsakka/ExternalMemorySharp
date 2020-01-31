@@ -15,13 +15,13 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 		public T Value => (T)(object)_enumVal.GetValue();
 		#endregion
 
+		public TEnumAsByte(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) { }
 		/// <summary>
 		/// Just use this constract for pass this class as Genric Param <para/>
-		/// Must call '<see cref="ExternalClass.UpdateAddress(IntPtr)"/> <para />
-		/// Must call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> <para />
+		/// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
+		/// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
 		/// </summary>
-		public TEnumAsByte() : base(null, IntPtr.Zero) { }
-		public TEnumAsByte(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) { }
+		public TEnumAsByte() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) { }
 
 		protected override void InitOffsets()
 		{

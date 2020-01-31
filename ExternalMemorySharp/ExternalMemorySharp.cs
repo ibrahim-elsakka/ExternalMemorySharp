@@ -8,6 +8,12 @@ namespace ExternalMemory
 {
     public class ExternalMemorySharp
     {
+        /// <summary>
+        /// Main <see cref="ExternalMemorySharp"/>, It's Used In Zero Param Instance Of <see cref="ExternalClass"/> <para/>
+        /// Like (<see cref="ExternalReady.UnrealEngine.TArray{T}"/>, <see cref="ExternalReady.UnrealEngine.FTransform"/>, etc)
+        /// </summary>
+        public static ExternalMemorySharp MainEms { get; set; }
+
         #region Delegates
         public delegate bool ReadCallBack(IntPtr address, long size, out byte[] bytes);
         public delegate bool WriteCallBack(IntPtr address, byte[] bytes);
@@ -159,12 +165,12 @@ namespace ExternalMemory
                 // Nested External Class
                 else if (offset.OffsetType == OffsetType.ExternalClass)
                 {
-                    offset.ExternalClassObject = (ExternalClass)Activator.CreateInstance(offset.ExternalClassType);
-
                     if (offset.ExternalClassIsPointer)
                     {
                         // Get Address Of Nested Class
                         IntPtr valPtr = offset.GetValue<IntPtr>();
+
+                        // Set Class Info
                         offset.ExternalClassObject.UpdateAddress(valPtr);
 
                         // Read Nested Pointer Class
@@ -176,8 +182,13 @@ namespace ExternalMemory
                     }
                     else
                     {
+                        IntPtr nestedAddress = address + offset.Offset;
+
+                        // Set Class Info
+                        offset.ExternalClassObject.UpdateAddress(nestedAddress);
+
                         // Read Nested Instance Class
-                        if (!ReadClass(offset.ExternalClassObject, address + offset.Offset, offset.Value))
+                        if (!ReadClass(offset.ExternalClassObject, nestedAddress, offset.Value))
                         {
                             // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
                             return false;

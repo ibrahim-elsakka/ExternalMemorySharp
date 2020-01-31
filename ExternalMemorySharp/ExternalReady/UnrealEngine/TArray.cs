@@ -23,7 +23,6 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
 
         public List<T> Items { get; } = new List<T>();
-        private readonly bool _gameIs64Bit;
         private readonly int _itemSize;
 
         #region Offsets
@@ -42,18 +41,18 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public int Max => _max.GetValue<int>();
         #endregion
 
-        /// <summary>
-        /// Just use this constract for pass this class as Genric Param <para/>
-        /// Must call '<see cref="ExternalClass.UpdateAddress(IntPtr)"/> <para />
-        /// Must call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> <para />
-        /// </summary>
-        public TArray() : base(null, IntPtr.Zero) { }
         public TArray(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
         {
-            _gameIs64Bit = emsInstance.Is64BitGame;
             _itemSize = ((T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0)).ClassSize;
-
         }
+
+        /// <summary>
+        /// Just use this constract for pass this class as Genric Param <para/>
+        /// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
+        /// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
+        /// </summary>
+        public TArray() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) {}
+
         public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : this(emsInstance, address)
         {
             MaxCountTArrayCanCarry = maxCountTArrayCanCarry;
@@ -62,7 +61,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         protected override void InitOffsets()
         {
             int curOff = 0x0;
-            _data = new ExternalOffset<IntPtr>(ExternalOffset.None, curOff); curOff += _gameIs64Bit ? 0x8 : 0x4;
+            _data = new ExternalOffset<IntPtr>(ExternalOffset.None, curOff); curOff += Ems.Is64BitGame ? 0x8 : 0x4;
             _count = new ExternalOffset<int>(ExternalOffset.None, curOff); curOff += 0x4;
             _max = new ExternalOffset<int>(ExternalOffset.None, curOff);
         }
@@ -74,30 +73,40 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 return false;
 
             int counter = 0;
-            int itemSize = ReadInfo.IsPointer ? (_gameIs64Bit ? 8 : 4) : _itemSize;
+            int itemSize = ReadInfo.IsPointer ? (Ems.Is64BitGame ? 8 : 4) : _itemSize;
+            itemSize += ReadInfo.BadSizeAfterEveryItem;
 
             // Get TArray Data
             Ems.ReadBytes(Data, Items.Count * itemSize, out byte[] tArrayData);
             var bytes = new List<byte>(tArrayData);
 
-            for (int i = 0; i < Items.Count; i++)
+            int offset = 0;
+            foreach (T item in Items)
             {
-                int offset = i * itemSize;
-
-                // Get Item Address (Pointer Value (aka Pointed Address))
                 IntPtr itemAddress;
-                if (_gameIs64Bit)
-                    itemAddress = (IntPtr)BitConverter.ToUInt64(tArrayData, offset);
+                if (ReadInfo.IsPointer)
+				{
+                    // Get Item Address (Pointer Value (aka Pointed Address))
+                    itemAddress = Ems.Is64BitGame
+                        ? (IntPtr)BitConverter.ToUInt64(tArrayData, offset)
+                        : (IntPtr)BitConverter.ToUInt32(tArrayData, offset);
+                }
                 else
-                    itemAddress = (IntPtr)BitConverter.ToUInt32(tArrayData, offset);
+				{
+                    itemAddress = this.BaseAddress + offset;
+                }
 
                 // Update current item
-                Items[i].UpdateAddress(itemAddress);
+                item.UpdateAddress(itemAddress);
 
+                // Set Data
                 if (ReadInfo.IsPointer)
-                    Items[i].UpdateData();
+                    item.UpdateData();
                 else
-                    Items[i].UpdateData(bytes.GetRange(offset, itemSize).ToArray());
+                    item.UpdateData(bytes.GetRange(offset, itemSize).ToArray());
+
+                // Move Offset
+                offset += itemSize;
 
                 if (DelaypInfo.Delay == 0)
 	                continue;
@@ -114,6 +123,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         private bool Read()
         {
+            if (Ems == null)
+                throw new NullReferenceException($"Ems is null, Are u miss calling 'UpdateReader` Or Set 'MainEms' !!");
+
             if (!Ems.ReadClass(this, BaseAddress))
                 return false;
 

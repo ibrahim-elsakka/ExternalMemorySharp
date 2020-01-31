@@ -8,7 +8,7 @@ namespace ExternalMemory
 {
     public abstract class ExternalClass
     {
-        public ExternalMemorySharp Ems { get; private set; }
+        public ExternalMemorySharp Ems { get; internal set; }
         internal List<ExternalOffset> Offsets { get; }
         internal int ClassSize { get; set; }
         internal byte[] FullClassBytes { get; set; }
@@ -17,7 +17,7 @@ namespace ExternalMemory
 
         protected ExternalClass(ExternalMemorySharp emsInstance, IntPtr address)
         {
-            Ems = emsInstance;
+            Ems = emsInstance ?? throw new NullReferenceException("emsInstance Can't be null, Use 'ExternalMemorySharp.MainEms' instead.");
             BaseAddress = address;
 
             // ReSharper disable once VirtualMemberCallInConstructor
@@ -32,7 +32,7 @@ namespace ExternalMemory
 
                     // Set Info
                     curOffset.Name = f.Name;
-                    curOffset.Ems = emsInstance;
+                    curOffset.Ems = Ems;
 
                     // If It's 32bit Game Then Pointer Is 4Byte
                     if (curOffset.OffsetType == OffsetType.IntPtr && !curOffset.IsGame64Bit)
