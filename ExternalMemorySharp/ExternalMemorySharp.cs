@@ -165,6 +165,7 @@ namespace ExternalMemory
                     {
                         // Get Address Of Nested Class
                         IntPtr valPtr = offset.GetValue<IntPtr>();
+                        offset.ExternalClassObject.UpdateAddress(valPtr);
 
                         // Read Nested Pointer Class
                         if (!ReadClass(offset.ExternalClassObject, valPtr))

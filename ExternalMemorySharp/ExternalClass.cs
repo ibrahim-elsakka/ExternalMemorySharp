@@ -80,5 +80,15 @@ namespace ExternalMemory
         {
 	        return BaseAddress != IntPtr.Zero && Ems.ReadClass(this, BaseAddress);
         }
+
+        /// <summary>
+        /// Set Data On This Class (Doesn't Call ReadMemory Callback) <para />
+        /// Be Careful When Using This Function
+        /// </summary>
+        /// <param name="fullClassBytes">Full <see cref="ExternalClass"/> Bytes</param>
+        public virtual bool UpdateData(byte[] fullClassBytes)
+        {
+            return BaseAddress != IntPtr.Zero && Ems.ReadClass(this, BaseAddress, fullClassBytes);
+        }
     }
 }

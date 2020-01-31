@@ -11,8 +11,20 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
     /// </summary>
     public class TArray<T> : ExternalClass where T : ExternalClass, new()
     {
+        public class DelayData
+        {
+            public int DelayEvery { get; set; } = 1;
+            public int Delay { get; set; } = 0;
+        }
+        public class ReadData
+        {
+            public bool IsPointer { get; set; } = true;
+            public int BadSizeAfterEveryItem { get; set; } = 0x0;
+        }
+
         public List<T> Items { get; } = new List<T>();
         private readonly bool _gameIs64Bit;
+        private readonly int _itemSize;
 
         #region Offsets
         protected ExternalOffset<IntPtr> _data;
@@ -22,8 +34,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
         #region Props
         public int MaxCountTArrayCanCarry { get; } = 0x20000;
-        public int DelayEvery { get; set; } = 1;
-        public int Delay { get; set; } = 0;
+        public DelayData DelaypInfo { get; } = new DelayData();
+        public ReadData ReadInfo { get; } = new ReadData();
 
         public IntPtr Data => _data.GetValue<IntPtr>();
         public int Count => _count.GetValue<int>();
@@ -39,6 +51,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public TArray(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
         {
             _gameIs64Bit = emsInstance.Is64BitGame;
+            _itemSize = ((T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0)).ClassSize;
+
         }
         public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : this(emsInstance, address)
         {
@@ -60,35 +74,39 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 return false;
 
             int counter = 0;
-            // Pointer Address
-            int distance = _gameIs64Bit ? 8 : 4;
+            int itemSize = ReadInfo.IsPointer ? (_gameIs64Bit ? 8 : 4) : _itemSize;
 
             // Get TArray Data
-            Ems.ReadBytes(Data, Items.Count * distance, out byte[] tArrayData);
+            Ems.ReadBytes(Data, Items.Count * itemSize, out byte[] tArrayData);
+            var bytes = new List<byte>(tArrayData);
+
             for (int i = 0; i < Items.Count; i++)
             {
-                int bIndex = i * distance;
+                int offset = i * itemSize;
 
-                // Get Item Address
+                // Get Item Address (Pointer Value (aka Pointed Address))
                 IntPtr itemAddress;
-
                 if (_gameIs64Bit)
-                    itemAddress = (IntPtr)BitConverter.ToUInt64(tArrayData, bIndex);
+                    itemAddress = (IntPtr)BitConverter.ToUInt64(tArrayData, offset);
                 else
-                    itemAddress = (IntPtr)BitConverter.ToUInt32(tArrayData, bIndex);
+                    itemAddress = (IntPtr)BitConverter.ToUInt32(tArrayData, offset);
 
                 // Update current item
                 Items[i].UpdateAddress(itemAddress);
-                Items[i].UpdateData();
 
-                if (Delay == 0)
+                if (ReadInfo.IsPointer)
+                    Items[i].UpdateData();
+                else
+                    Items[i].UpdateData(bytes.GetRange(offset, itemSize).ToArray());
+
+                if (DelaypInfo.Delay == 0)
 	                continue;
 
                 counter++;
-                if (counter < DelayEvery)
+                if (counter < DelaypInfo.DelayEvery)
 	                continue;
 
-                Thread.Sleep(Delay);
+                Thread.Sleep(DelaypInfo.Delay);
                 counter = 0;
             }
 
@@ -113,7 +131,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 {
                     Enumerable.Range(Items.Count, Count).ToList().ForEach(num =>
                     {
-                        var instance = (T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0);
+                        T instance = (T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0);
                         Items.Add(instance);
                     });
                 }
