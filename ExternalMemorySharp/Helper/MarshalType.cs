@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -74,45 +75,53 @@ namespace ExternalMemory.Helper
         {
             // We'll tried to avoid marshalling as it really slows the process
             // First, check if the type can be converted without marhsalling
-            switch (TypeCode)
+            try
             {
-                case TypeCode.Object:
-                    if (IsIntPtr)
-                    {
-                        switch (Size)
-                        {
-                            case 4:
-                                return BitConverter.GetBytes(((IntPtr)(object)obj).ToInt32());
-                            case 8:
-                                return BitConverter.GetBytes(((IntPtr)(object)obj).ToInt64());
-                        }
-                    }
-                    break;
-                case TypeCode.Boolean:
-                    return BitConverter.GetBytes((bool)(object)obj);
-                case TypeCode.Char:
-                    return Encoding.UTF8.GetBytes(new[] { (char)(object)obj });
-                case TypeCode.Double:
-                    return BitConverter.GetBytes((double)(object)obj);
-                case TypeCode.Int16:
-                    return BitConverter.GetBytes((short)(object)obj);
-                case TypeCode.Int32:
-                    return BitConverter.GetBytes((int)(object)obj);
-                case TypeCode.Int64:
-                    return BitConverter.GetBytes((long)(object)obj);
-                case TypeCode.Single:
-                    return BitConverter.GetBytes((float)(object)obj);
-                case TypeCode.String:
-                    throw new InvalidCastException("This method doesn't support string conversion.");
-                case TypeCode.UInt16:
-                    return BitConverter.GetBytes((ushort)(object)obj);
-                case TypeCode.UInt32:
-                    return BitConverter.GetBytes((uint)(object)obj);
-                case TypeCode.UInt64:
-                    return BitConverter.GetBytes((ulong)(object)obj);
-                default:
-                    break;
+	            switch (TypeCode)
+	            {
+		            case TypeCode.Object:
+			            if (IsIntPtr)
+			            {
+				            switch (Size)
+				            {
+					            case 4:
+						            return BitConverter.GetBytes(((IntPtr)(object)obj).ToInt32());
+					            case 8:
+						            return BitConverter.GetBytes(((IntPtr)(object)obj).ToInt64());
+				            }
+			            }
+			            break;
+		            case TypeCode.Boolean:
+			            return BitConverter.GetBytes((bool)(object)obj);
+		            case TypeCode.Char:
+			            return Encoding.UTF8.GetBytes(new[] { (char)(object)obj });
+		            case TypeCode.Double:
+			            return BitConverter.GetBytes((double)(object)obj);
+		            case TypeCode.Int16:
+			            return BitConverter.GetBytes((short)(object)obj);
+		            case TypeCode.Int32:
+			            return BitConverter.GetBytes((int)(object)obj);
+		            case TypeCode.Int64:
+			            return BitConverter.GetBytes((long)(object)obj);
+		            case TypeCode.Single:
+			            return BitConverter.GetBytes((float)(object)obj);
+		            case TypeCode.String:
+			            throw new InvalidCastException("This method doesn't support string conversion.");
+		            case TypeCode.UInt16:
+			            return BitConverter.GetBytes((ushort)(object)obj);
+		            case TypeCode.UInt32:
+			            return BitConverter.GetBytes((uint)(object)obj);
+		            case TypeCode.UInt64:
+			            return BitConverter.GetBytes((ulong)(object)obj);
+		            default:
+			            break;
+	            }
             }
+            catch (Exception e)
+            {
+	            Debug.WriteLine(e);
+            }
+            
             // Check if it's not a common type
             // Allocate a block of unmanaged memory
             using var unmanaged = new LocalUnmanagedMemory(Size);
