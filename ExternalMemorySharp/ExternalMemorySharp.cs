@@ -169,16 +169,20 @@ namespace ExternalMemory
                     if (offset.ExternalClassIsPointer)
                     {
                         // Get Address Of Nested Class
-                        IntPtr valPtr = offset.GetValue<IntPtr>();
+                        var valPtr = offset.GetValue<IntPtr>();
 
                         // Set Class Info
                         offset.ExternalClassObject.UpdateAddress(valPtr);
 
-                        // Read Nested Pointer Class
-                        if (!ReadClass(offset.ExternalClassObject, valPtr))
+                        // Null Pointer
+                        if (valPtr != IntPtr.Zero)
                         {
-                            // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
-                            return false;
+	                        // Read Nested Pointer Class
+	                        if (!ReadClass(offset.ExternalClassObject, valPtr))
+	                        {
+		                        // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
+		                        return false;
+	                        }
                         }
                     }
                     else
