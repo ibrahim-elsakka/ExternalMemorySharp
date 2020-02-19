@@ -141,52 +141,60 @@ namespace ExternalMemory.Helper
         {
             // We'll tried to avoid marshalling as it really slows the process
             // First, check if the type can be converted without marshalling
-            switch (TypeCode)
+
+            try
             {
-                case TypeCode.Object:
-                    if (IsIntPtr)
-                    {
-                        switch (byteArray.Length)
+                switch (TypeCode)
+                {
+                    case TypeCode.Object:
+                        if (IsIntPtr)
                         {
-                            case 1:
-                                return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], 0x0, 0x0, 0x0 }, index));
-                            case 2:
-                                return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], byteArray[index + 1], 0x0, 0x0 }, index));
-                            case 4:
-                                return (T)(object)new IntPtr(BitConverter.ToInt32(byteArray, index));
-                            case 8:
-                                return (T)(object)new IntPtr(BitConverter.ToInt64(byteArray, index));
-                            default:
-                                break;
+                            switch (byteArray.Length)
+                            {
+                                case 1:
+                                    return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], 0x0, 0x0, 0x0 }, index));
+                                case 2:
+                                    return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], byteArray[index + 1], 0x0, 0x0 }, index));
+                                case 4:
+                                    return (T)(object)new IntPtr(BitConverter.ToInt32(byteArray, index));
+                                case 8:
+                                    return (T)(object)new IntPtr(BitConverter.ToInt64(byteArray, index));
+                                default:
+                                    break;
+                            }
                         }
-                    }
-                    break;
-                case TypeCode.Boolean:
-                    return (T)(object)BitConverter.ToBoolean(byteArray, index);
-                case TypeCode.Byte:
-                    return (T)(object)byteArray[index];
-                case TypeCode.Char:
-                    return (T)(object)Encoding.UTF8.GetChars(byteArray)[index];
-                case TypeCode.Double:
-                    return (T)(object)BitConverter.ToDouble(byteArray, index);
-                case TypeCode.Int16:
-                    return (T)(object)BitConverter.ToInt16(byteArray, index);
-                case TypeCode.Int32:
-                    return (T)(object)BitConverter.ToInt32(byteArray, index);
-                case TypeCode.Int64:
-                    return (T)(object)BitConverter.ToInt64(byteArray, index);
-                case TypeCode.Single:
-                    return (T)(object)BitConverter.ToSingle(byteArray, index);
-                case TypeCode.String:
-                    throw new InvalidCastException("This method doesn't support string conversion.");
-                case TypeCode.UInt16:
-                    return (T)(object)BitConverter.ToUInt16(byteArray, index);
-                case TypeCode.UInt32:
-                    return (T)(object)BitConverter.ToUInt32(byteArray, index);
-                case TypeCode.UInt64:
-                    return (T)(object)BitConverter.ToUInt64(byteArray, index);
-                default:
-                    break;
+                        break;
+                    case TypeCode.Boolean:
+                        return (T)(object)BitConverter.ToBoolean(byteArray, index);
+                    case TypeCode.Byte:
+                        return (T)(object)byteArray[index];
+                    case TypeCode.Char:
+                        return (T)(object)Encoding.UTF8.GetChars(byteArray)[index];
+                    case TypeCode.Double:
+                        return (T)(object)BitConverter.ToDouble(byteArray, index);
+                    case TypeCode.Int16:
+                        return (T)(object)BitConverter.ToInt16(byteArray, index);
+                    case TypeCode.Int32:
+                        return (T)(object)BitConverter.ToInt32(byteArray, index);
+                    case TypeCode.Int64:
+                        return (T)(object)BitConverter.ToInt64(byteArray, index);
+                    case TypeCode.Single:
+                        return (T)(object)BitConverter.ToSingle(byteArray, index);
+                    case TypeCode.String:
+                        throw new InvalidCastException("This method doesn't support string conversion.");
+                    case TypeCode.UInt16:
+                        return (T)(object)BitConverter.ToUInt16(byteArray, index);
+                    case TypeCode.UInt32:
+                        return (T)(object)BitConverter.ToUInt32(byteArray, index);
+                    case TypeCode.UInt64:
+                        return (T)(object)BitConverter.ToUInt64(byteArray, index);
+                    default:
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+	            Debug.WriteLine(e);
             }
 
             // Allocate a block of unmanaged memory

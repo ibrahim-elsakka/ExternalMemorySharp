@@ -42,6 +42,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
         protected override void InitOffsets()
         {
+	        base.InitOffsets();
+
             _rotation = new ExternalOffset<Vector4>(ExternalOffset.None, 0x00);
             _translation = new ExternalOffset<Vector3>(ExternalOffset.None, 0x10);
             _scale3D = new ExternalOffset<Vector3>(ExternalOffset.None, 0x1C);

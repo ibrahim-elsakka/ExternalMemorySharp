@@ -5,29 +5,33 @@ using System.Text;
 
 namespace ExternalMemory.ExternalReady.UnrealEngine
 {
-	public class TEnumAsByte<T> : ExternalClass where T : Enum
+	public class FName : ExternalClass
 	{
 		#region Offsets
-		protected ExternalOffset<byte> _enumVal;
+		protected ExternalOffset<int> _index;
+		protected ExternalOffset<int> _number;
 		#endregion
 
 		#region Props
-		public T Value => (T)(object)_enumVal.GetValue();
+		public int Index => _index.GetValue();
+		public int Number => _number.GetValue();
 		#endregion
 
-		public TEnumAsByte(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) { }
+		public FName(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) {}
+
 		/// <summary>
 		/// Just use this constract for pass this class as Genric Param <para/>
 		/// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
 		/// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
 		/// </summary>
-		public TEnumAsByte() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) { }
+		public FName() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) {}
 
 		protected override void InitOffsets()
 		{
 			base.InitOffsets();
 
-			_enumVal = new ExternalOffset<byte>(ExternalOffset.None, 0x00);
+			_index = new ExternalOffset<int>(ExternalOffset.None, 0x00);
+			_number = new ExternalOffset<int>(ExternalOffset.None, 0x04);
 		}
 	}
 }

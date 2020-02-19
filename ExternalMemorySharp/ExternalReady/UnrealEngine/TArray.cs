@@ -61,6 +61,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
         protected override void InitOffsets()
         {
+	        base.InitOffsets();
+
             int curOff = 0x0;
             _data = new ExternalOffset<IntPtr>(ExternalOffset.None, curOff); curOff += Ems.Is64BitGame ? 0x8 : 0x4;
             _count = new ExternalOffset<int>(ExternalOffset.None, curOff); curOff += 0x4;
