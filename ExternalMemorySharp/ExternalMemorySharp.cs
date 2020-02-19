@@ -79,7 +79,8 @@ namespace ExternalMemory
 
             // Sort By Dependencies
             unrealOffsets = unrealOffsets.OrderBy(off => off.Offset).ToList();
-            unrealOffsets = unrealOffsets.Sort(off => unrealOffsets.Where(offset => offset == off.Dependency));
+            List<ExternalOffset> offsets = unrealOffsets;
+            unrealOffsets = unrealOffsets.Sort(off => offsets.Where(offset => offset == off.Dependency));
 
             return unrealOffsets;
         }
@@ -107,13 +108,13 @@ namespace ExternalMemory
                     offset.SetValueBytes(instance.FullClassBytes);
                     offset.OffsetAddress = address + offset.Offset;
                 }
-                else if (offset.Dependency.DataAssigned)
+                else if (offset.Dependency != null && offset.Dependency.DataAssigned)
                 {
                     offset.SetValueBytes(offset.Dependency.Data);
                     offset.OffsetAddress += offset.Offset;
                 }
                 // Dependency Is Null-Pointer OR Bad Pointer Then Just Skip
-                else if (offset.Dependency.OffsetType == OffsetType.IntPtr && !offset.Dependency.DataAssigned)
+                else if (offset.Dependency != null && (offset.Dependency.OffsetType == OffsetType.IntPtr && !offset.Dependency.DataAssigned))
                 {
                     continue;
                 }
@@ -128,8 +129,8 @@ namespace ExternalMemory
                 if (offset.OffsetType == OffsetType.PString)
                 {
                     // Get Pointer
-                    IntPtr pStr = offset.GetValue<IntPtr>();
-                    bool isUni = true;
+                    var pStr = offset.GetValue<IntPtr>();
+                    bool isUni = true; // ToDo: Change That shit
 
                     if (pStr != IntPtr.Zero)
                     {

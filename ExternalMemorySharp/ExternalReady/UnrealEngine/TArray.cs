@@ -20,6 +20,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         {
             public bool IsPointer { get; set; } = true;
             public int BadSizeAfterEveryItem { get; set; } = 0x0;
+            public bool UseMaxAsReadCount { get; set; } = false;
         }
 
         public List<T> Items { get; } = new List<T>();
@@ -33,7 +34,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 
         #region Props
         public int MaxCountTArrayCanCarry { get; } = 0x20000;
-        public DelayData DelaypInfo { get; } = new DelayData();
+        public DelayData DelayInfo { get; } = new DelayData();
         public ReadData ReadInfo { get; } = new ReadData();
 
         public IntPtr Data => _data.GetValue<IntPtr>();
@@ -108,14 +109,14 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 // Move Offset
                 offset += itemSize;
 
-                if (DelaypInfo.Delay == 0)
+                if (DelayInfo.Delay == 0)
 	                continue;
 
                 counter++;
-                if (counter < DelaypInfo.DelayEvery)
+                if (counter < DelayInfo.DelayEvery)
 	                continue;
 
-                Thread.Sleep(DelaypInfo.Delay);
+                Thread.Sleep(DelayInfo.Delay);
                 counter = 0;
             }
 
@@ -129,19 +130,21 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             if (!Ems.ReadClass(this, BaseAddress))
                 return false;
 
-            if (Count > MaxCountTArrayCanCarry)
+            int count = ReadInfo.UseMaxAsReadCount ? Max : Count;
+
+            if (count > MaxCountTArrayCanCarry)
                 return false;
 
             // TODO: Change This Logic
             try
             {
-                if (Items.Count > Count)
+                if (Items.Count > count)
                 {
-                    Items.RemoveRange(Count, Items.Count - Count);
+                    Items.RemoveRange(count, Items.Count - count);
                 }
-                else if (Items.Count < Count)
+                else if (Items.Count < count)
                 {
-                    Enumerable.Range(Items.Count, Count).ToList().ForEach(num =>
+                    Enumerable.Range(Items.Count, count).ToList().ForEach(num =>
                     {
                         T instance = (T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0);
                         Items.Add(instance);
@@ -157,7 +160,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         public bool IsValid()
         {
-            if (Count == 0 && !Read())
+	        int count = ReadInfo.UseMaxAsReadCount ? Max : Count;
+
+            if (count == 0 && !Read())
                 return false;
 
             return (Max > Count) && BaseAddress != IntPtr.Zero;
