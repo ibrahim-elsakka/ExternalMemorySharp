@@ -115,7 +115,6 @@ namespace ExternalMemory
         public int Offset { get; protected set; }
         public OffsetType OffsetType { get; protected set; }
         protected MarshalType OffsetMarshalType { get; set; }
-        
 
         #region GenricExternalClass
         /// <summary>
@@ -186,21 +185,21 @@ namespace ExternalMemory
 	        // (Dependency == None) Mean it's Base Class Data
             Array.Copy(Dependency == None ? fullDependencyBytes : Dependency.FullClassData, Offset, valueBytes, 0, valueBytes.Length);
 
-            if (OffsetType == OffsetType.String)
+            switch (OffsetType)
             {
-	            Value = GetStringFromBytes(fullDependencyBytes, true);
-            }
-            else if (OffsetType == OffsetType.UIntPtr || (OffsetType == OffsetType.ExternalClass && ExternalClassIsPointer))
-            {
-	            Value = (UIntPtr)(IsGame64Bit ? valueBytes.ToStructure<ulong>() : valueBytes.ToStructure<uint>());
-            }
-            else if (OffsetType == OffsetType.ExternalClass)
-            {
-	            Value = valueBytes;
-            }
-            else
-            {
-	            Value = OffsetMarshalType.ByteArrayToObject(valueBytes);
+	            case OffsetType.String:
+		            Value = GetStringFromBytes(fullDependencyBytes, true);
+		            break;
+	            case OffsetType.UIntPtr:
+	            case OffsetType.ExternalClass when ExternalClassIsPointer:
+		            Value = (UIntPtr)(IsGame64Bit ? valueBytes.ToStructure<ulong>() : valueBytes.ToStructure<uint>());
+		            break;
+	            case OffsetType.ExternalClass:
+		            Value = valueBytes;
+		            break;
+	            default:
+		            Value = OffsetMarshalType.ByteArrayToObject(valueBytes);
+		            break;
             }
         }
 
@@ -214,29 +213,24 @@ namespace ExternalMemory
             DataAssigned = false;
             if (Value != null)
 	            Value = ExternalClassType == null ? default : Activator.CreateInstance(ExternalClassType);
-
+            
             if (FullClassData != null)
                 Array.Clear(FullClassData, 0, FullClassData.Length);
         }
 
+
+        #region String
+        // ToDO: this function case memory leak, Fix IT
         internal string GetStringFromBytes(byte[] fullDependencyBytes, bool isUnicode)
         {
-            int charSize = isUnicode ? 2 : 1;
-            var strBytes = new List<byte>();
+	        const int cLen = 64;
+	        int len = fullDependencyBytes.Length > Offset + cLen ? cLen : fullDependencyBytes.Length - Offset;
+	        var buf = new byte[len];
 
-            while (true)
-            {
-                var buf = new byte[charSize];
-                Array.Copy(fullDependencyBytes, Offset, buf, 0, charSize);
+            Array.Copy(fullDependencyBytes, Offset, buf, 0, buf.Length);
 
-                strBytes.AddRange(buf);
-
-                // Null-Terminator
-                if (buf.All(b => b == 0x00))
-                    break;
-            }
-
-            return Utils.BytesToString(strBytes.ToArray(), true).Trim('\0');
+            return Utils.BytesToString(buf, isUnicode).Split('\0')[0];
         }
+        #endregion
     }
 }

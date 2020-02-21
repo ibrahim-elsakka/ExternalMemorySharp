@@ -70,25 +70,11 @@ namespace ExternalMemory
             foreach (ExternalOffset unrealOffset in unrealOffsets)
                 unrealOffset.RemoveValueAndData();
         }
-        private static List<ExternalOffset> GetOffsets<T>(T instance) where T : ExternalClass
-        {
-            // Collect Data From Offsets
-            List<ExternalOffset> unrealOffsets = instance.Offsets
-                .Where(f => f != null)
-                .ToList();
-
-            // Sort By Dependencies
-            unrealOffsets = unrealOffsets.OrderBy(off => off.Offset).ToList();
-            List<ExternalOffset> offsets = unrealOffsets;
-            unrealOffsets = unrealOffsets.Sort(off => offsets.Where(offset => offset == off.Dependency));
-
-            return unrealOffsets;
-        }
 
         internal bool ReadClass<T>(T instance, UIntPtr address, byte[] fullClassBytes) where T : ExternalClass
         {
             // Collect Offsets
-            List<ExternalOffset> allOffsets = GetOffsets(instance);
+            List<ExternalOffset> allOffsets = instance.Offsets;
 
             // Set Bytes
             instance.FullClassBytes = fullClassBytes;
@@ -210,7 +196,7 @@ namespace ExternalMemory
             if (address.ToUInt64() <= 0)
             {
                 // Clear All Class Offset
-                List<ExternalOffset> unrealOffsets = GetOffsets(instance);
+                List<ExternalOffset> unrealOffsets = instance.Offsets;
                 RemoveValueData(unrealOffsets);
                 return false;
             }
@@ -219,7 +205,7 @@ namespace ExternalMemory
             if (!ReadBytes(address, (uint)instance.ClassSize, out byte[] fullClassBytes))
             {
                 // Clear All Class Offset
-                List<ExternalOffset> unrealOffsets = GetOffsets(instance);
+                List<ExternalOffset> unrealOffsets = instance.Offsets;
                 RemoveValueData(unrealOffsets);
                 return false;
             }

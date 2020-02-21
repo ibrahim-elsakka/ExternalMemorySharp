@@ -44,8 +44,18 @@ namespace ExternalMemory
                 })
                 .ToList();
 
+            // Re order Offsets
+            List<ExternalOffset> offsetsList = Offsets
+	            .Where(f => f != null)
+	            .ToList();
+
+            // Sort By Dependencies
+            offsetsList = offsetsList.OrderBy(off => off.Offset).ToList();
+            List<ExternalOffset> offsets = offsetsList;
+            Offsets = offsetsList.Sort(off => offsets.Where(offset => offset == off.Dependency));
+
             // Get Size Of Class
-            ClassSize = (int)Utils.GetDependenciesSize(ExternalOffset.None, Offsets);
+            ClassSize = Utils.GetDependenciesSize(ExternalOffset.None, Offsets);
         }
 
         /// <summary>
