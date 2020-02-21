@@ -42,7 +42,7 @@ namespace ExternalMemory.Helper
             ExternalOffset offset = unrealOffsets.Find(off => off.Dependency == dependency && off.Offset == biggestOffset);
 
             // Get Size Of Data
-            int valueSize = offset.Value.Length;
+            int valueSize = offset.Size;
 
             return biggestOffset + valueSize;
         }

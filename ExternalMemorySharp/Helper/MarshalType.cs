@@ -9,7 +9,7 @@ namespace ExternalMemory.Helper
     /// Static class providing tools for extracting information related to types.
     /// </summary>
     /// <typeparam name="T">Type to analyze.</typeparam>
-    public class MarshalType<T>
+    public class MarshalType
     {
         #region Properties
         /// <summary>
@@ -38,11 +38,11 @@ namespace ExternalMemory.Helper
         /// <summary>
         /// Initializes static information related to the specified type.
         /// </summary>
-        public MarshalType()
+        public MarshalType(Type type)
         {
             // Gather information related to the provided type
-            IsIntPtr = typeof(T) == typeof(IntPtr);
-            RealType = typeof(T);
+            IsIntPtr = type == typeof(IntPtr);
+            RealType = type;
             Size = TypeCode == TypeCode.Boolean ? 1 : Marshal.SizeOf(RealType);
             TypeCode = Type.GetTypeCode(RealType);
             // Check if the type can be stored in registers
@@ -71,7 +71,7 @@ namespace ExternalMemory.Helper
         /// </summary>
         /// <param name="obj">The object to marshal.</param>
         /// <returns>A array of bytes corresponding to the managed object.</returns>
-        public byte[] ObjectToByteArray(T obj)
+        public byte[] ObjectToByteArray(object obj)
         {
             // We'll tried to avoid marshalling as it really slows the process
             // First, check if the type can be converted without marhsalling
@@ -137,7 +137,7 @@ namespace ExternalMemory.Helper
         /// <param name="byteArray">The array of bytes corresponding to a managed object.</param>
         /// <param name="index">[Optional] Where to start the conversion of bytes to the managed object.</param>
         /// <returns>A managed object.</returns>
-        public T ByteArrayToObject(byte[] byteArray, int index = 0)
+        public object ByteArrayToObject(byte[] byteArray, int index = 0)
         {
             // We'll tried to avoid marshalling as it really slows the process
             // First, check if the type can be converted without marshalling
@@ -152,42 +152,42 @@ namespace ExternalMemory.Helper
                             switch (byteArray.Length)
                             {
                                 case 1:
-                                    return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], 0x0, 0x0, 0x0 }, index));
+                                    return (object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], 0x0, 0x0, 0x0 }, index));
                                 case 2:
-                                    return (T)(object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], byteArray[index + 1], 0x0, 0x0 }, index));
+                                    return (object)new IntPtr(BitConverter.ToInt32(new byte[] { byteArray[index], byteArray[index + 1], 0x0, 0x0 }, index));
                                 case 4:
-                                    return (T)(object)new IntPtr(BitConverter.ToInt32(byteArray, index));
+                                    return (object)new IntPtr(BitConverter.ToInt32(byteArray, index));
                                 case 8:
-                                    return (T)(object)new IntPtr(BitConverter.ToInt64(byteArray, index));
+                                    return (object)new IntPtr(BitConverter.ToInt64(byteArray, index));
                                 default:
                                     break;
                             }
                         }
                         break;
                     case TypeCode.Boolean:
-                        return (T)(object)BitConverter.ToBoolean(byteArray, index);
+                        return (object)BitConverter.ToBoolean(byteArray, index);
                     case TypeCode.Byte:
-                        return (T)(object)byteArray[index];
+                        return (object)byteArray[index];
                     case TypeCode.Char:
-                        return (T)(object)Encoding.UTF8.GetChars(byteArray)[index];
+                        return (object)Encoding.UTF8.GetChars(byteArray)[index];
                     case TypeCode.Double:
-                        return (T)(object)BitConverter.ToDouble(byteArray, index);
+                        return (object)BitConverter.ToDouble(byteArray, index);
                     case TypeCode.Int16:
-                        return (T)(object)BitConverter.ToInt16(byteArray, index);
+                        return (object)BitConverter.ToInt16(byteArray, index);
                     case TypeCode.Int32:
-                        return (T)(object)BitConverter.ToInt32(byteArray, index);
+                        return (object)BitConverter.ToInt32(byteArray, index);
                     case TypeCode.Int64:
-                        return (T)(object)BitConverter.ToInt64(byteArray, index);
+                        return (object)BitConverter.ToInt64(byteArray, index);
                     case TypeCode.Single:
-                        return (T)(object)BitConverter.ToSingle(byteArray, index);
+                        return (object)BitConverter.ToSingle(byteArray, index);
                     case TypeCode.String:
                         throw new InvalidCastException("This method doesn't support string conversion.");
                     case TypeCode.UInt16:
-                        return (T)(object)BitConverter.ToUInt16(byteArray, index);
+                        return (object)BitConverter.ToUInt16(byteArray, index);
                     case TypeCode.UInt32:
-                        return (T)(object)BitConverter.ToUInt32(byteArray, index);
+                        return (object)BitConverter.ToUInt32(byteArray, index);
                     case TypeCode.UInt64:
-                        return (T)(object)BitConverter.ToUInt64(byteArray, index);
+                        return (object)BitConverter.ToUInt64(byteArray, index);
                     default:
                         break;
                 }
@@ -203,7 +203,7 @@ namespace ExternalMemory.Helper
             unmanaged.Write(byteArray, index);
 
             // Return a managed object created from the block of unmanaged memory
-            return unmanaged.Read<T>();
+            return unmanaged.Read(RealType);
         }
         #endregion
     }

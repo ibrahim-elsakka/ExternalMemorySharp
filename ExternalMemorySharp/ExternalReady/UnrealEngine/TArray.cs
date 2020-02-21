@@ -37,9 +37,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public DelayData DelayInfo { get; } = new DelayData();
         public ReadData ReadInfo { get; } = new ReadData();
 
-        public UIntPtr Data => _data.Read<UIntPtr>();
-        public int Count => _count.Read<int>();
-        public int Max => _max.Read<int>();
+        public UIntPtr Data => _data.Read();
+        public int Count => _count.Read();
+        public int Max => _max.Read();
         #endregion
 
         public TArray(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address)
@@ -80,7 +80,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             itemSize += ReadInfo.BadSizeAfterEveryItem;
 
             // Get TArray Data
-            Ems.ReadBytes(Data, Items.Count * itemSize, out byte[] tArrayData);
+            Ems.ReadBytes(Data, (uint)(Items.Count * itemSize), out byte[] tArrayData);
             var bytes = new List<byte>(tArrayData);
 
             int offset = 0;

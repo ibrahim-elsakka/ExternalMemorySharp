@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using ExternalMemory.Helper;
@@ -16,32 +16,36 @@ namespace ExternalMemory
         /// </summary>
         ExternalClass,
 
-        Byte,
-        Integer,
-        Float,
         UIntPtr,
         String,
         PString
     }
 
-    public class ExternalOffset<T> : ExternalOffset
+    public sealed class ExternalOffset<T> : ExternalOffset
     {
         public ExternalOffset(int offset) : this(None, offset) {}
+        internal ExternalOffset(int offset, OffsetType offsetType) : this(None, offset, offsetType) { }
         public ExternalOffset(int offset, bool externalClassIsPointer) : this(None, offset, externalClassIsPointer) {}
 
+
         /// <summary>
-        /// For Init Custom Types Like (<see cref="UIntPtr"/>, Structs, ..etc)
+        /// For Init Custom Types Like (<see cref="UIntPtr"/>, <see cref="int"/>, <see cref="float"/>, <see cref="string"/>, ..etc)
         /// </summary>
-        /// <param name="dependency"></param>
-        /// <param name="offset"></param>
-        public ExternalOffset(ExternalOffset dependency, int offset) : base(dependency, offset, OffsetType.Custom)
+        public ExternalOffset(ExternalOffset dependency, int offset) : this(dependency, offset, OffsetType.Custom)
         {
+	        if (typeof(T).IsSubclassOf(typeof(ExternalClass)))
+		        throw new InvalidCastException("Use Other Constructor For `ExternalClass` Types.");
+
             Init();
         }
-        public ExternalOffset(ExternalOffset dependency, int offset, bool externalClassIsPointer) : base(dependency, offset, OffsetType.ExternalClass)
+
+        /// <summary>
+        /// For Init <see cref="ExternalClass"/>
+        /// </summary>
+        public ExternalOffset(ExternalOffset dependency, int offset, bool externalClassIsPointer) : this(dependency, offset, OffsetType.ExternalClass)
         {
             if (!typeof(T).IsSubclassOf(typeof(ExternalClass)))
-                throw new Exception("This Constructor For `ExternalClass` Types Only.");
+                throw new InvalidCastException("This Constructor For `ExternalClass` Types Only.");
 
             ExternalClassType = typeof(T);
             ExternalClassIsPointer = externalClassIsPointer;
@@ -50,14 +54,30 @@ namespace ExternalMemory
             Init();
         }
 
+        /// <summary>
+        /// Main
+        /// </summary>
+        internal ExternalOffset(ExternalOffset dependency, int offset, OffsetType offsetType)
+        {
+	        Dependency = dependency;
+	        Offset = offset;
+	        OffsetType = offsetType;
+        }
+
         private void Init()
         {
-            int size = 0;
-            if (typeof(T) == typeof(IntPtr) || typeof(T) == typeof(UIntPtr))
+	        Type thisType = typeof(T);
+	        if (thisType == typeof(string))
+	        {
+		        OffsetType = OffsetType.String;
+		        OffsetMarshalType = new MarshalType(typeof(UIntPtr));
+	        }
+            else if (thisType == typeof(IntPtr) || thisType == typeof(UIntPtr))
             {
                 OffsetType = OffsetType.UIntPtr;
+                OffsetMarshalType = new MarshalType(typeof(UIntPtr));
             }
-            else if (typeof(T).IsSubclassOf(typeof(ExternalClass)) || typeof(T).IsSubclassOfRawGeneric(typeof(ExternalOffset<>)))
+            else if (thisType.IsSubclassOf(typeof(ExternalClass)) || thisType.IsSubclassOfRawGeneric(typeof(ExternalOffset<>)))
             {
                 // OffsetType Set On Other Constructor If It's `ExternalClass`
                 if (OffsetType != OffsetType.ExternalClass)
@@ -65,29 +85,37 @@ namespace ExternalMemory
 
                 // If externalClassIsPointer == true, ExternalClass Will Fix The Size Before Calc Class Size
                 // So It's Okay To Leave It Like That
-                size = ((ExternalClass)Activator.CreateInstance(typeof(T))).ClassSize;
+                Size = ExternalClassObject.ClassSize;
+
+                OffsetMarshalType = ExternalClassIsPointer ? new MarshalType(typeof(UIntPtr)) : null;
             }
             else
-            {
-                size = Marshal.SizeOf<T>();
+			{
+				Size = Marshal.SizeOf<T>();
+				OffsetMarshalType = new MarshalType(thisType);
             }
-
-            ReSetValueSize(size);
         }
 
         public T Read() => Read<T>();
-        internal void SetValue(T value) => SetValue<T>(value);
         public bool Write(T value) => Write<T>(value);
     }
 
-    public class ExternalOffset
+    public abstract class ExternalOffset
     {
-        public static ExternalOffset None { get; } = new ExternalOffset(null, 0x0, OffsetType.None);
+        public static ExternalOffset None { get; } = new ExternalOffset<byte>(null, 0x0, OffsetType.None);
+
+        #region Proparites
+        /// <summary>
+        /// MemoryReader Used To Read This Offset
+        /// </summary>
+        internal ExternalMemorySharp Ems { get; set; }
 
         internal UIntPtr OffsetAddress { get; set; }
-        public ExternalOffset Dependency { get; }
-        public int Offset { get; }
+        public ExternalOffset Dependency { get; protected set; }
+        public int Offset { get; protected set; }
         public OffsetType OffsetType { get; protected set; }
+        protected MarshalType OffsetMarshalType { get; set; }
+        
 
         #region GenricExternalClass
         /// <summary>
@@ -105,192 +133,108 @@ namespace ExternalMemory
         /// </summary>
         internal bool ExternalClassIsPointer { get; set; }
         #endregion
-
-        /// <summary>
-        /// MemoryReader Used To Read This Offset
-        /// </summary>
-        internal ExternalMemorySharp Ems { get; set; }
-
+        
         /// <summary>
         /// Offset Name
         /// </summary>
         internal string Name { get; set; }
 
         /// <summary>
-        /// Offset Value As Bytes
+        /// Offset Size
         /// </summary>
-        internal byte[] Value { get; set; }
+        internal int Size { get; set; }
+
+        /// <summary>
+        /// Offset Value As Object
+        /// </summary>
+        internal object Value { get; set; }
 
         /// <summary>
         /// If Offset Is Pointer Then We Need A Place To Store
         /// Data It's Point To
         /// </summary>
-        internal byte[] Data { get; set; }
+        internal byte[] FullClassData { get; set; }
 
         internal bool DataAssigned { get; private set; }
-        internal int Size => Value.Length;
         internal bool IsGame64Bit => Ems?.Is64BitGame ?? false;
+        #endregion
 
-        public ExternalOffset(int offset, OffsetType offsetType) : this(None, offset, offsetType) {}
-        public ExternalOffset(ExternalOffset dependency, int offset, OffsetType offsetType)
+        internal T Read<T>()
         {
-            Dependency = dependency;
-            Offset = offset;
-            OffsetType = offsetType;
-
-            SetValueSize();
-        }
-
-        /// <summary>
-        /// Create Offset With Custom Size
-        /// </summary>
-        public ExternalOffset(ExternalOffset dependency, int offset, int size) : this(dependency, offset, OffsetType.Custom)
-        {
-            ReSetValueSize(size);
-        }
-
-        public T Read<T>()
-        {
-            Type tType = typeof(T);
-
-            if (tType.IsSubclassOf(typeof(ExternalClass)) || tType.IsSubclassOfRawGeneric(typeof(ExternalOffset<>)))
-            {
+            if (OffsetType == OffsetType.ExternalClass && typeof(T) != typeof(UIntPtr) && typeof(T) != typeof(IntPtr))
                 return (T)(object)ExternalClassObject;
-            }
-            else if (tType == typeof(string))
-            {
-                return (T)(object)Utils.BytesToString(Value, true).Trim('\0');
-            }
-            else if (tType == typeof(IntPtr))
-            {
-                return (T)(object)(IntPtr)(IsGame64Bit ? Read<long>() : Read<int>());
-            }
-            else if (tType == typeof(UIntPtr))
-            {
-                return (T)(object)(UIntPtr)(IsGame64Bit ? Read<ulong>() : Read<uint>());
-            }
 
-            // return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
-            return Value.Length == 0 ? Activator.CreateInstance<T>() : new MarshalType<T>().ByteArrayToObject(Value);
+            if (Value == null)
+	            return default;
+
+            return (T)Value;
         }
-        public bool Write<T>(T value)
+        protected bool Write<T>(T value)
         {
             if (OffsetAddress == UIntPtr.Zero)
                 return false;
 
-            SetValue(value);
-            return Ems.WriteBytes(OffsetAddress, Value);
+            Value = value;
+            return Ems.WriteBytes(OffsetAddress, OffsetMarshalType.ObjectToByteArray(Value));
         }
 
-        internal void SetValue<T>(T value)
-		{
-            if (value == null)
-                throw new ArgumentNullException(nameof(value), "'value' Can't be null.");
-
-            Type tType = typeof(T);
-
-            if (tType.IsSubclassOf(typeof(ExternalClass)) || tType.IsSubclassOfRawGeneric(typeof(ExternalOffset<>)))
-            {
-                ExternalClassObject = (ExternalClass)(object)value;
-            }
-            else if (tType == typeof(string))
-			{
-				Value = Utils.StringToBytes(((string)(object)value).Trim('\0'), true);
-			}
-			else if (tType == typeof(IntPtr))
-			{
-				Value = IsGame64Bit ? ((long)(object)value).ToByteArray() : ((int)(object)value).ToByteArray();
-			}
-            else if (tType == typeof(UIntPtr))
-			{
-				Value = IsGame64Bit ? ((ulong)(object)value).ToByteArray() : ((uint)(object)value).ToByteArray();
-			}
-
-			Value = new MarshalType<T>().ObjectToByteArray(value);
-		}
-        private void SetValueSize()
-        {
-            Value = OffsetType switch
-            {
-                OffsetType.None => new byte[1],
-                OffsetType.Custom => new byte[1],
-                OffsetType.ExternalClass => new byte[1],
-
-                OffsetType.Byte => new byte[1],
-                OffsetType.Integer => new byte[4],
-                OffsetType.Float => new byte[4],
-
-                OffsetType.String => new byte[2],
-                OffsetType.UIntPtr => new byte[IsGame64Bit ? 8 : 4],
-                OffsetType.PString => new byte[IsGame64Bit ? 8 : 4],
-
-                _ => throw new ArgumentOutOfRangeException(nameof(Value), "SetValueSize Can't set value size"),
-            };
-        }
-        internal void ReSetValueSize(int newSize)
-        {
-            Value = new byte[newSize];
-        }
         internal void SetValueBytes(byte[] fullDependencyBytes)
         {
-            // Init Dynamic Size Types (String, .., etc)
+            var valueBytes = new byte[Size];
+
+	        // (Dependency == None) Mean it's Base Class Data
+            Array.Copy(Dependency == None ? fullDependencyBytes : Dependency.FullClassData, Offset, valueBytes, 0, valueBytes.Length);
+
             if (OffsetType == OffsetType.String)
             {
-                ReSetValueSize(GetStringSizeFromBytes(fullDependencyBytes, true));
+	            Value = GetStringFromBytes(fullDependencyBytes, true);
             }
-
-            // (Dependency == None) Mean it's Base Class Data
-            Array.Copy(Dependency == None ? fullDependencyBytes : Dependency.Data, Offset, Value, 0, Value.Length);
-
-            // It's Like Event
-            OnSetValue();
+            else if (OffsetType == OffsetType.UIntPtr || (OffsetType == OffsetType.ExternalClass && ExternalClassIsPointer))
+            {
+	            Value = (UIntPtr)(IsGame64Bit ? valueBytes.ToStructure<ulong>() : valueBytes.ToStructure<uint>());
+            }
+            else if (OffsetType == OffsetType.ExternalClass)
+            {
+	            Value = valueBytes;
+            }
+            else
+            {
+	            Value = OffsetMarshalType.ByteArrayToObject(valueBytes);
+            }
         }
+
         internal void SetData(byte[] bytes)
         {
             DataAssigned = true;
-            Data = bytes;
+            FullClassData = bytes;
         }
         internal void RemoveValueAndData()
         {
             DataAssigned = false;
             if (Value != null)
-                Array.Clear(Value, 0, Value.Length);
-            if (Data != null)
-                Array.Clear(Data, 0, Data.Length);
-        }
-        protected virtual void OnSetValue()
-        {
+	            Value = Activator.CreateInstance(ExternalClassType);
+            if (FullClassData != null)
+                Array.Clear(FullClassData, 0, FullClassData.Length);
         }
 
-        internal int GetStringSizeFromBytes(byte[] bytes, bool isUnicode)
+        internal string GetStringFromBytes(byte[] fullDependencyBytes, bool isUnicode)
         {
-            int retSize = 0;
             int charSize = isUnicode ? 2 : 1;
+            var strBytes = new List<byte>();
 
             while (true)
             {
                 var buf = new byte[charSize];
-                Array.Copy(bytes, Offset, buf, 0, charSize);
+                Array.Copy(fullDependencyBytes, Offset, buf, 0, charSize);
 
-                retSize += charSize;
+                strBytes.AddRange(buf);
 
                 // Null-Terminator
                 if (buf.All(b => b == 0x00))
                     break;
             }
 
-            return retSize;
-        }
-        public static ExternalOffset Parse(ExternalOffset dependency, string hexString)
-        {
-            string[] chunks = hexString.Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries);
-            int offset = int.Parse(chunks[0].Replace("0x", ""), NumberStyles.HexNumber);
-            bool enumGood = Enum.TryParse(chunks[1], true, out OffsetType type);
-
-            if (!enumGood)
-                throw new Exception("Enum Bad Value.");
-
-            return new ExternalOffset(dependency, offset, type);
+            return Utils.BytesToString(strBytes.ToArray(), true).Trim('\0');
         }
     }
 }

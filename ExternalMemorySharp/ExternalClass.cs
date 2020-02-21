@@ -36,24 +36,22 @@ namespace ExternalMemory
 
                     // If It's 32bit Game Then Pointer Is 4Byte
                     if (curOffset.OffsetType == OffsetType.UIntPtr && !curOffset.IsGame64Bit)
-                        curOffset.ReSetValueSize(0x4);
+	                    curOffset.Size = 0x4;
                     else if (curOffset.OffsetType == OffsetType.ExternalClass && curOffset.ExternalClassIsPointer)
-                        curOffset.ReSetValueSize(curOffset.IsGame64Bit ? 0x8 : 0x4);
+	                    curOffset.Size = curOffset.IsGame64Bit ? 0x8 : 0x4;
 
                     return curOffset;
                 })
                 .ToList();
 
             // Get Size Of Class
-            ClassSize = Utils.GetDependenciesSize(ExternalOffset.None, Offsets);
+            ClassSize = (int)Utils.GetDependenciesSize(ExternalOffset.None, Offsets);
         }
 
         /// <summary>
         /// Override this function to init Offsets Of Your Class
         /// </summary>
-        protected virtual void InitOffsets()
-        {
-        }
+        protected virtual void InitOffsets() {}
 
         /// <summary>
         /// Update <see cref="BaseAddress"/> Of This Class

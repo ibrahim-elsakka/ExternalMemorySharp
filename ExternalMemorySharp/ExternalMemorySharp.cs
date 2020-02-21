@@ -15,7 +15,7 @@ namespace ExternalMemory
         public static ExternalMemorySharp MainEms { get; set; }
 
         #region Delegates
-        public delegate bool ReadCallBack(UIntPtr address, long size, out byte[] bytes);
+        public delegate bool ReadCallBack(UIntPtr address, ulong size, out byte[] bytes);
         public delegate bool WriteCallBack(UIntPtr address, byte[] bytes);
         #endregion
 
@@ -33,7 +33,7 @@ namespace ExternalMemory
             ReadBytesCallBack = readBytesDelegate;
             WriteBytesCallBack = writeBytesDelegate;
         }
-        public bool ReadBytes(UIntPtr address, int size, out byte[] bytes)
+        public bool ReadBytes(UIntPtr address, uint size, out byte[] bytes)
         {
             bool retState = ReadBytesCallBack(address, size, out bytes);
             // if (!retState)
@@ -52,7 +52,7 @@ namespace ExternalMemory
 
             while (true)
             {
-                if (!ReadBytes(lpBaseAddress, charSize, out byte[] buf))
+                if (!ReadBytes(lpBaseAddress, (uint)charSize, out byte[] buf))
                     break;
 
                 // Null-Terminator
@@ -110,7 +110,7 @@ namespace ExternalMemory
                 }
                 else if (offset.Dependency != null && offset.Dependency.DataAssigned)
                 {
-                    offset.SetValueBytes(offset.Dependency.Data);
+                    offset.SetValueBytes(offset.Dependency.FullClassData);
                     offset.OffsetAddress += offset.Offset;
                 }
                 // Dependency Is Null-Pointer OR Bad Pointer Then Just Skip
@@ -157,7 +157,7 @@ namespace ExternalMemory
                     offset.OffsetAddress = offset.Read<UIntPtr>();
 
                     // Can't Read Bytes
-                    if (!ReadBytes(offset.Read<UIntPtr>(), pointedSize, out byte[] dataBytes))
+                    if (!ReadBytes(offset.Read<UIntPtr>(), (uint)pointedSize, out byte[] dataBytes))
                         continue;
 
                     offset.SetData(dataBytes);
@@ -193,7 +193,7 @@ namespace ExternalMemory
                         offset.ExternalClassObject.UpdateAddress(nestedAddress);
 
                         // Read Nested Instance Class
-                        if (!ReadClass(offset.ExternalClassObject, nestedAddress, offset.Value))
+                        if (!ReadClass(offset.ExternalClassObject, nestedAddress, (byte[])offset.Value))
                         {
                             // throw new Exception($"Can't Read `{offset.ExternalClassType.Name}` As `ExternalClass`.", new Exception($"Value Count = {offset.Size}"));
                             return false;
@@ -216,7 +216,7 @@ namespace ExternalMemory
             }
 
             // Read Full Class
-            if (!ReadBytes(address, instance.ClassSize, out byte[] fullClassBytes))
+            if (!ReadBytes(address, (uint)instance.ClassSize, out byte[] fullClassBytes))
             {
                 // Clear All Class Offset
                 List<ExternalOffset> unrealOffsets = GetOffsets(instance);

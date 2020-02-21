@@ -57,10 +57,10 @@ namespace ExternalMemory.Helper
         /// </summary>
         /// <typeparam name="T">The type of data to return.</typeparam>
         /// <returns>The return value is the block of memory casted in the specified type.</returns>
-        public T Read<T>()
+        public object Read(Type type)
         {
             // Marshal data from the block of memory to a new allocated managed object
-            return (T)Marshal.PtrToStructure(Address, typeof(T));
+            return Marshal.PtrToStructure(Address, type);
         }
         /// <summary>
         /// Reads an array of bytes from the unmanaged block of memory.
