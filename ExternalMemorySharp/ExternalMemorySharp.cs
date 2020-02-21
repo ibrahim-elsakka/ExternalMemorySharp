@@ -15,8 +15,8 @@ namespace ExternalMemory
         public static ExternalMemorySharp MainEms { get; set; }
 
         #region Delegates
-        public delegate bool ReadCallBack(IntPtr address, long size, out byte[] bytes);
-        public delegate bool WriteCallBack(IntPtr address, byte[] bytes);
+        public delegate bool ReadCallBack(UIntPtr address, long size, out byte[] bytes);
+        public delegate bool WriteCallBack(UIntPtr address, byte[] bytes);
         #endregion
 
         #region Props
@@ -33,7 +33,7 @@ namespace ExternalMemory
             ReadBytesCallBack = readBytesDelegate;
             WriteBytesCallBack = writeBytesDelegate;
         }
-        public bool ReadBytes(IntPtr address, int size, out byte[] bytes)
+        public bool ReadBytes(UIntPtr address, int size, out byte[] bytes)
         {
             bool retState = ReadBytesCallBack(address, size, out bytes);
             // if (!retState)
@@ -41,11 +41,11 @@ namespace ExternalMemory
 
             return retState;
         }
-        public bool WriteBytes(IntPtr address, byte[] bytes)
+        public bool WriteBytes(UIntPtr address, byte[] bytes)
         {
             return WriteBytesCallBack(address, bytes);
         }
-        private string ReadString(IntPtr lpBaseAddress, bool isUnicode = false)
+        private string ReadString(UIntPtr lpBaseAddress, bool isUnicode = false)
         {
             int charSize = isUnicode ? 2 : 1;
             string ret = string.Empty;
@@ -85,7 +85,7 @@ namespace ExternalMemory
             return unrealOffsets;
         }
 
-        internal bool ReadClass<T>(T instance, IntPtr address, byte[] fullClassBytes) where T : ExternalClass
+        internal bool ReadClass<T>(T instance, UIntPtr address, byte[] fullClassBytes) where T : ExternalClass
         {
             // Collect Offsets
             List<ExternalOffset> allOffsets = GetOffsets(instance);
@@ -97,8 +97,8 @@ namespace ExternalMemory
             foreach (ExternalOffset offset in allOffsets)
             {
                 #region Checks
-                if (offset.Dependency != null && offset.Dependency.OffsetType != OffsetType.IntPtr && offset.Dependency != ExternalOffset.None)
-                    throw new ArgumentException("Dependency can only be pointer (IntPtr) or 'ExternalOffset.None'");
+                if (offset.Dependency != null && offset.Dependency.OffsetType != OffsetType.UIntPtr && offset.Dependency != ExternalOffset.None)
+                    throw new ArgumentException("Dependency can only be pointer (UIntPtr) or 'ExternalOffset.None'");
                 #endregion
 
                 #region SetValue
@@ -114,7 +114,7 @@ namespace ExternalMemory
                     offset.OffsetAddress += offset.Offset;
                 }
                 // Dependency Is Null-Pointer OR Bad Pointer Then Just Skip
-                else if (offset.Dependency != null && (offset.Dependency.OffsetType == OffsetType.IntPtr && !offset.Dependency.DataAssigned))
+                else if (offset.Dependency != null && (offset.Dependency.OffsetType == OffsetType.UIntPtr && !offset.Dependency.DataAssigned))
                 {
                     continue;
                 }
@@ -129,10 +129,10 @@ namespace ExternalMemory
                 if (offset.OffsetType == OffsetType.PString)
                 {
                     // Get Pointer
-                    var pStr = offset.GetValue<IntPtr>();
+                    var pStr = offset.Read<UIntPtr>();
                     bool isUni = true; // ToDo: Change That shit
 
-                    if (pStr != IntPtr.Zero)
+                    if (pStr != UIntPtr.Zero)
                     {
                         string str = ReadString(pStr, isUni);
                         offset.Value = Utils.StringToBytes(str, isUni);
@@ -142,7 +142,7 @@ namespace ExternalMemory
 
                 #region Init For Dependencies
                 // If It's Pointer, Read Pointed Data To Use On Other Offset Dependent On It
-                if (offset.OffsetType == OffsetType.IntPtr)
+                if (offset.OffsetType == OffsetType.UIntPtr)
                 {
                     // Get Size Of Pointed Data
                     int pointedSize = Utils.GetDependenciesSize(offset, allOffsets);
@@ -154,10 +154,10 @@ namespace ExternalMemory
 
                     // Set Base Address, So i can set correct address for Dependencies offsets `else if (offset.Dependency.DataAssigned)` UP.
                     // So i just need to add offset to that address
-                    offset.OffsetAddress = offset.GetValue<IntPtr>();
+                    offset.OffsetAddress = offset.Read<UIntPtr>();
 
                     // Can't Read Bytes
-                    if (!ReadBytes(offset.GetValue<IntPtr>(), pointedSize, out byte[] dataBytes))
+                    if (!ReadBytes(offset.Read<UIntPtr>(), pointedSize, out byte[] dataBytes))
                         continue;
 
                     offset.SetData(dataBytes);
@@ -169,13 +169,13 @@ namespace ExternalMemory
                     if (offset.ExternalClassIsPointer)
                     {
                         // Get Address Of Nested Class
-                        var valPtr = offset.GetValue<IntPtr>();
+                        var valPtr = offset.Read<UIntPtr>();
 
                         // Set Class Info
                         offset.ExternalClassObject.UpdateAddress(valPtr);
 
                         // Null Pointer
-                        if (valPtr != IntPtr.Zero)
+                        if (valPtr != UIntPtr.Zero)
                         {
 	                        // Read Nested Pointer Class
 	                        if (!ReadClass(offset.ExternalClassObject, valPtr))
@@ -187,7 +187,7 @@ namespace ExternalMemory
                     }
                     else
                     {
-                        IntPtr nestedAddress = address + offset.Offset;
+                        UIntPtr nestedAddress = address + offset.Offset;
 
                         // Set Class Info
                         offset.ExternalClassObject.UpdateAddress(nestedAddress);
@@ -205,9 +205,9 @@ namespace ExternalMemory
 
             return true;
         }
-        public bool ReadClass<T>(T instance, IntPtr address) where T : ExternalClass
+        public bool ReadClass<T>(T instance, UIntPtr address) where T : ExternalClass
         {
-            if (address.ToInt64() <= 0)
+            if (address.ToUInt64() <= 0)
             {
                 // Clear All Class Offset
                 List<ExternalOffset> unrealOffsets = GetOffsets(instance);
@@ -227,7 +227,7 @@ namespace ExternalMemory
             return ReadClass(instance, address, fullClassBytes);
         }
 
-        public bool ReadClass<T>(T instance, int address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
-        public bool ReadClass<T>(T instance, long address) where T : ExternalClass => ReadClass(instance, (IntPtr)address);
+        public bool ReadClass<T>(T instance, int address) where T : ExternalClass => ReadClass(instance, (UIntPtr)address);
+        public bool ReadClass<T>(T instance, long address) where T : ExternalClass => ReadClass(instance, (UIntPtr)address);
     }
 }

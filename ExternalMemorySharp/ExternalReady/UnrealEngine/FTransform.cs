@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace ExternalMemory.ExternalReady.UnrealEngine
 {
     public class FTransform : ExternalClass
     {
-        public static FTransform Zero = new FTransform(ExternalMemorySharp.MainEms, IntPtr.Zero);
+        public static FTransform Zero = new FTransform(ExternalMemorySharp.MainEms, UIntPtr.Zero);
         #region Offsets
         protected ExternalOffset<Vector4> _rotation;
         protected ExternalOffset<Vector3> _translation;
@@ -32,13 +30,13 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         #endregion
         
-        public FTransform(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) {}
+        public FTransform(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address) {}
         /// <summary>
         /// Just use this constract for pass this class as Genric Param <para/>
         /// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
         /// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
         /// </summary>
-        public FTransform() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) {}
+        public FTransform() : this(ExternalMemorySharp.MainEms, UIntPtr.Zero) {}
 
         protected override void InitOffsets()
         {

@@ -18,7 +18,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         }
         public class ReadData
         {
-            public bool IsPointer { get; set; } = true;
+            public bool IsPointerToData { get; set; } = true;
             public int BadSizeAfterEveryItem { get; set; } = 0x0;
             public bool UseMaxAsReadCount { get; set; } = false;
         }
@@ -27,7 +27,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         private readonly int _itemSize;
 
         #region Offsets
-        protected ExternalOffset<IntPtr> _data;
+        protected ExternalOffset<UIntPtr> _data;
         protected ExternalOffset<int> _count;
         protected ExternalOffset<int> _max;
         #endregion
@@ -37,14 +37,14 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         public DelayData DelayInfo { get; } = new DelayData();
         public ReadData ReadInfo { get; } = new ReadData();
 
-        public IntPtr Data => _data.GetValue<IntPtr>();
-        public int Count => _count.GetValue<int>();
-        public int Max => _max.GetValue<int>();
+        public UIntPtr Data => _data.Read<UIntPtr>();
+        public int Count => _count.Read<int>();
+        public int Max => _max.Read<int>();
         #endregion
 
-        public TArray(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address)
+        public TArray(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address)
         {
-            _itemSize = ((T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0)).ClassSize;
+            _itemSize = ((T)Activator.CreateInstance(typeof(T), Ems, (UIntPtr)0x0)).ClassSize;
         }
 
         /// <summary>
@@ -52,9 +52,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         /// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
         /// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
         /// </summary>
-        public TArray() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) {}
+        public TArray() : this(ExternalMemorySharp.MainEms, UIntPtr.Zero) {}
 
-        public TArray(ExternalMemorySharp emsInstance, IntPtr address, int maxCountTArrayCanCarry) : this(emsInstance, address)
+        public TArray(ExternalMemorySharp emsInstance, UIntPtr address, int maxCountTArrayCanCarry) : this(emsInstance, address)
         {
             MaxCountTArrayCanCarry = maxCountTArrayCanCarry;
         }
@@ -64,7 +64,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 	        base.InitOffsets();
 
             int curOff = 0x0;
-            _data = new ExternalOffset<IntPtr>(ExternalOffset.None, curOff); curOff += Ems.Is64BitGame ? 0x8 : 0x4;
+            _data = new ExternalOffset<UIntPtr>(ExternalOffset.None, curOff); curOff += Ems.Is64BitGame ? 0x8 : 0x4;
             _count = new ExternalOffset<int>(ExternalOffset.None, curOff); curOff += 0x4;
             _max = new ExternalOffset<int>(ExternalOffset.None, curOff);
         }
@@ -76,7 +76,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 return false;
 
             int counter = 0;
-            int itemSize = ReadInfo.IsPointer ? (Ems.Is64BitGame ? 8 : 4) : _itemSize;
+            int itemSize = ReadInfo.IsPointerToData ? (Ems.Is64BitGame ? 8 : 4) : _itemSize;
             itemSize += ReadInfo.BadSizeAfterEveryItem;
 
             // Get TArray Data
@@ -86,13 +86,13 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             int offset = 0;
             foreach (T item in Items)
             {
-                IntPtr itemAddress;
-                if (ReadInfo.IsPointer)
+                UIntPtr itemAddress;
+                if (ReadInfo.IsPointerToData)
 				{
                     // Get Item Address (Pointer Value (aka Pointed Address))
                     itemAddress = Ems.Is64BitGame
-                        ? (IntPtr)BitConverter.ToUInt64(tArrayData, offset)
-                        : (IntPtr)BitConverter.ToUInt32(tArrayData, offset);
+                        ? (UIntPtr)BitConverter.ToUInt64(tArrayData, offset)
+                        : (UIntPtr)BitConverter.ToUInt32(tArrayData, offset);
                 }
                 else
 				{
@@ -103,7 +103,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 item.UpdateAddress(itemAddress);
 
                 // Set Data
-                if (ReadInfo.IsPointer)
+                if (ReadInfo.IsPointerToData)
                     item.UpdateData();
                 else
                     item.UpdateData(bytes.GetRange(offset, itemSize).ToArray());
@@ -140,6 +140,9 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             // TODO: Change This Logic
             try
             {
+	            if (count <= 0)
+		            return false;
+
                 if (Items.Count > count)
                 {
                     Items.RemoveRange(count, Items.Count - count);
@@ -148,7 +151,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
                 {
                     Enumerable.Range(Items.Count, count).ToList().ForEach(num =>
                     {
-                        T instance = (T)Activator.CreateInstance(typeof(T), Ems, (IntPtr)0x0);
+                        var instance = (T)Activator.CreateInstance(typeof(T), Ems, (UIntPtr)0x0);
                         Items.Add(instance);
                     });
                 }
@@ -167,7 +170,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
             if (count == 0 && !Read())
                 return false;
 
-            return (Max > Count) && BaseAddress != IntPtr.Zero;
+            return (Max > Count) && BaseAddress != UIntPtr.Zero;
         }
 
         #region Indexer

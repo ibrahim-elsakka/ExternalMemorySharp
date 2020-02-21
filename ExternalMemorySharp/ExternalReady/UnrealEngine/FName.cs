@@ -17,14 +17,14 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 		public int Number => _number.GetValue();
 		#endregion
 
-		public FName(ExternalMemorySharp emsInstance, IntPtr address) : base(emsInstance, address) {}
+		public FName(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address) {}
 
 		/// <summary>
 		/// Just use this constract for pass this class as Genric Param <para/>
 		/// Will Use <see cref="ExternalMemorySharp.MainEms"/> As Reader<para />
 		/// You Can call '<see cref="ExternalClass.UpdateReader(ExternalMemorySharp)"/> To Override
 		/// </summary>
-		public FName() : this(ExternalMemorySharp.MainEms, IntPtr.Zero) {}
+		public FName() : this(ExternalMemorySharp.MainEms, UIntPtr.Zero) {}
 
 		protected override void InitOffsets()
 		{

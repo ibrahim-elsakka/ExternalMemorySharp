@@ -18,7 +18,7 @@ namespace ExternalMemory
         Byte,
         Integer,
         Float,
-        IntPtr,
+        UIntPtr,
         String,
         PString
     }
@@ -29,7 +29,7 @@ namespace ExternalMemory
         public ExternalOffset(int offset, bool externalClassIsPointer) : this(None, offset, externalClassIsPointer) {}
 
         /// <summary>
-        /// For Init Custom Types Like (<see cref="IntPtr"/>, Structs, ..etc)
+        /// For Init Custom Types Like (<see cref="UIntPtr"/>, Structs, ..etc)
         /// </summary>
         /// <param name="dependency"></param>
         /// <param name="offset"></param>
@@ -54,7 +54,7 @@ namespace ExternalMemory
             int size = 0;
             if (typeof(T) == typeof(IntPtr) || typeof(T) == typeof(UIntPtr))
             {
-                OffsetType = OffsetType.IntPtr;
+                OffsetType = OffsetType.UIntPtr;
             }
             else if (typeof(T).IsSubclassOf(typeof(ExternalClass)) || typeof(T).IsSubclassOfRawGeneric(typeof(ExternalOffset<>)))
             {
@@ -74,7 +74,7 @@ namespace ExternalMemory
             ReSetValueSize(size);
         }
 
-        public T GetValue() => GetValue<T>();
+        public T Read() => Read<T>();
         internal void SetValue(T value) => SetValue<T>(value);
         public bool Write(T value) => Write<T>(value);
     }
@@ -83,7 +83,7 @@ namespace ExternalMemory
     {
         public static ExternalOffset None { get; } = new ExternalOffset(null, 0x0, OffsetType.None);
 
-        internal IntPtr OffsetAddress { get; set; }
+        internal UIntPtr OffsetAddress { get; set; }
         public ExternalOffset Dependency { get; }
         public int Offset { get; }
         public OffsetType OffsetType { get; protected set; }
@@ -148,7 +148,7 @@ namespace ExternalMemory
             ReSetValueSize(size);
         }
 
-        public T GetValue<T>()
+        public T Read<T>()
         {
             Type tType = typeof(T);
 
@@ -162,11 +162,11 @@ namespace ExternalMemory
             }
             else if (tType == typeof(IntPtr))
             {
-                return (T)(object)(IntPtr)(IsGame64Bit ? GetValue<long>() : GetValue<int>());
+                return (T)(object)(IntPtr)(IsGame64Bit ? Read<long>() : Read<int>());
             }
             else if (tType == typeof(UIntPtr))
             {
-                return (T)(object)(UIntPtr)(IsGame64Bit ? GetValue<ulong>() : GetValue<uint>());
+                return (T)(object)(UIntPtr)(IsGame64Bit ? Read<ulong>() : Read<uint>());
             }
 
             // return (T)Convert.ChangeType((dynamic)Value.ToStructure(typeof(T)), typeof(T));
@@ -174,7 +174,7 @@ namespace ExternalMemory
         }
         public bool Write<T>(T value)
         {
-            if (OffsetAddress == IntPtr.Zero)
+            if (OffsetAddress == UIntPtr.Zero)
                 return false;
 
             SetValue(value);
@@ -184,7 +184,7 @@ namespace ExternalMemory
         internal void SetValue<T>(T value)
 		{
             if (value == null)
-                throw new ArgumentNullException("'value' Can't be null.");
+                throw new ArgumentNullException(nameof(value), "'value' Can't be null.");
 
             Type tType = typeof(T);
 
@@ -220,10 +220,10 @@ namespace ExternalMemory
                 OffsetType.Float => new byte[4],
 
                 OffsetType.String => new byte[2],
-                OffsetType.IntPtr => new byte[IsGame64Bit ? 8 : 4],
+                OffsetType.UIntPtr => new byte[IsGame64Bit ? 8 : 4],
                 OffsetType.PString => new byte[IsGame64Bit ? 8 : 4],
 
-                _ => throw new ArgumentOutOfRangeException($"SetValueSize Can't set value size"),
+                _ => throw new ArgumentOutOfRangeException(nameof(Value), "SetValueSize Can't set value size"),
             };
         }
         internal void ReSetValueSize(int newSize)
