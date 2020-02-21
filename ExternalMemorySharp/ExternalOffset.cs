@@ -161,7 +161,8 @@ namespace ExternalMemory
 
         internal T Read<T>()
         {
-            if (OffsetType == OffsetType.ExternalClass && typeof(T) != typeof(UIntPtr) && typeof(T) != typeof(IntPtr))
+	        Type tType = typeof(T);
+            if (OffsetType == OffsetType.ExternalClass && tType != typeof(UIntPtr) && tType != typeof(IntPtr))
                 return (T)(object)ExternalClassObject;
 
             if (Value == null)
