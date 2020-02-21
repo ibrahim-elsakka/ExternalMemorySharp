@@ -48,7 +48,7 @@ namespace ExternalMemory
         private string ReadString(UIntPtr lpBaseAddress, bool isUnicode = false)
         {
             int charSize = isUnicode ? 2 : 1;
-            string ret = string.Empty;
+            var ret = new StringBuilder();
 
             while (true)
             {
@@ -59,15 +59,15 @@ namespace ExternalMemory
                 if (buf.All(b => b == 0x00))
                     break;
 
-                ret += isUnicode ? Encoding.Unicode.GetString(buf) : Encoding.ASCII.GetString(buf);
+                ret.Append(isUnicode ? Encoding.Unicode.GetString(buf) : Encoding.ASCII.GetString(buf));
                 lpBaseAddress += charSize;
             }
 
-            return ret;
+            return ret.ToString();
         }
         private static void RemoveValueData(IEnumerable<ExternalOffset> unrealOffsets)
         {
-            foreach (var unrealOffset in unrealOffsets)
+            foreach (ExternalOffset unrealOffset in unrealOffsets)
                 unrealOffset.RemoveValueAndData();
         }
         private static List<ExternalOffset> GetOffsets<T>(T instance) where T : ExternalClass

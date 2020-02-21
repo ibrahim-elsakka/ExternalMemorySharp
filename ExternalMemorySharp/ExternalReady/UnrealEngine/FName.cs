@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
 
 namespace ExternalMemory.ExternalReady.UnrealEngine
 {
@@ -13,8 +10,8 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 		#endregion
 
 		#region Props
-		public int Index => _index.GetValue();
-		public int Number => _number.GetValue();
+		public int Index => _index.Read();
+		public int Number => _number.Read();
 		#endregion
 
 		public FName(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address) {}

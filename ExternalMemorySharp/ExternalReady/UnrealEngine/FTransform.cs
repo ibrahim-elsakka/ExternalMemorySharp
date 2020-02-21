@@ -5,7 +5,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 {
     public class FTransform : ExternalClass
     {
-        public static FTransform Zero = new FTransform(ExternalMemorySharp.MainEms, UIntPtr.Zero);
+        public static readonly FTransform Zero = new FTransform(ExternalMemorySharp.MainEms, UIntPtr.Zero);
         #region Offsets
         protected ExternalOffset<Vector4> _rotation;
         protected ExternalOffset<Vector3> _translation;
@@ -15,17 +15,17 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
         #region Props
         public Vector4 Rotation
         {
-            get => _rotation.GetValue();
+            get => _rotation.Read();
             set => _rotation.Write(value);
         }
         public Vector3 Translation
         {
-            get => _translation.GetValue();
+            get => _translation.Read();
             set => _translation.Write(value);
         }
         public Vector3 Scale3D
         {
-            get => _scale3D.GetValue();
+            get => _scale3D.Read();
             set => _scale3D.Write(value);
         }
         #endregion

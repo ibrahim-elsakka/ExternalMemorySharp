@@ -10,6 +10,7 @@ namespace ExternalMemory
     {
         None,
         Custom,
+
         /// <summary>
         /// DON'T USE, It's For <see cref="ExternalOffset{T}"/> Only
         /// </summary>

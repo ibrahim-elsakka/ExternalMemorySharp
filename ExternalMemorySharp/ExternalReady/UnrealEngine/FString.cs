@@ -10,7 +10,7 @@ namespace ExternalMemory.ExternalReady.UnrealEngine
 		#endregion
 
 		#region Props
-		public string Str => _stringData.GetValue();
+		public string Str => _stringData.Read();
 		#endregion
 
 		public FString(ExternalMemorySharp emsInstance, UIntPtr address) : base(emsInstance, address) {}
