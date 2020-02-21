@@ -213,7 +213,8 @@ namespace ExternalMemory
         {
             DataAssigned = false;
             if (Value != null)
-	            Value = Activator.CreateInstance(ExternalClassType);
+	            Value = ExternalClassType == null ? default : Activator.CreateInstance(ExternalClassType);
+
             if (FullClassData != null)
                 Array.Clear(FullClassData, 0, FullClassData.Length);
         }
