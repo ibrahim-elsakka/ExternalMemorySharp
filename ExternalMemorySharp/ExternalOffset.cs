@@ -17,8 +17,7 @@ namespace ExternalMemory
         ExternalClass,
 
         UIntPtr,
-        String,
-        PString
+        String
     }
 
     public sealed class ExternalOffset<T> : ExternalOffset
@@ -180,11 +179,12 @@ namespace ExternalMemory
 
         internal void SetValueBytes(byte[] fullDependencyBytes)
         {
-            var valueBytes = new byte[Size];
+	        var valueBytes = new byte[Size];
 
 	        // (Dependency == None) Mean it's Base Class Data
             Array.Copy(Dependency == None ? fullDependencyBytes : Dependency.FullClassData, Offset, valueBytes, 0, valueBytes.Length);
 
+            // Set Value
             switch (OffsetType)
             {
 	            case OffsetType.String:
@@ -195,6 +195,7 @@ namespace ExternalMemory
 		            Value = (UIntPtr)(IsGame64Bit ? valueBytes.ToStructure<ulong>() : valueBytes.ToStructure<uint>());
 		            break;
 	            case OffsetType.ExternalClass:
+                    // The value is ByteArray it's for Offsets inside the ExternalClass
 		            Value = valueBytes;
 		            break;
 	            default:
@@ -211,6 +212,8 @@ namespace ExternalMemory
         internal void RemoveValueAndData()
         {
             DataAssigned = false;
+
+            // ToDo: Change This Logic
             if (Value != null)
 	            Value = ExternalClassType == null ? default : Activator.CreateInstance(ExternalClassType);
             
@@ -223,8 +226,9 @@ namespace ExternalMemory
         // ToDO: this function case memory leak, Fix IT
         internal string GetStringFromBytes(byte[] fullDependencyBytes, bool isUnicode)
         {
-	        const int cLen = 64;
-	        int len = fullDependencyBytes.Length > Offset + cLen ? cLen : fullDependencyBytes.Length - Offset;
+	        int len = fullDependencyBytes.Length > Offset + ExternalMemorySharp.MaxStringLen
+		        ? ExternalMemorySharp.MaxStringLen
+		        : fullDependencyBytes.Length - Offset;
 	        var buf = new byte[len];
 
             Array.Copy(fullDependencyBytes, Offset, buf, 0, buf.Length);

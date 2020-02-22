@@ -13,6 +13,8 @@ namespace ExternalMemory
         /// Like (<see cref="ExternalReady.UnrealEngine.TArray{T}"/>, <see cref="ExternalReady.UnrealEngine.FTransform"/>, etc)
         /// </summary>
         public static ExternalMemorySharp MainEms { get; set; }
+        public static int MaxStringLen { get; set; } = 64;
+
 
         #region Delegates
         public delegate bool ReadCallBack(UIntPtr address, ulong size, out byte[] bytes);
@@ -110,22 +112,6 @@ namespace ExternalMemory
                 }
                 #endregion
 
-                #region Pre-Pointer Types (PString, .., etc)
-                // Init
-                if (offset.OffsetType == OffsetType.PString)
-                {
-                    // Get Pointer
-                    var pStr = offset.Read<UIntPtr>();
-                    bool isUni = true; // ToDo: Change That shit
-
-                    if (pStr != UIntPtr.Zero)
-                    {
-                        string str = ReadString(pStr, isUni);
-                        offset.Value = Utils.StringToBytes(str, isUni);
-                    }
-                }
-                #endregion
-
                 #region Init For Dependencies
                 // If It's Pointer, Read Pointed Data To Use On Other Offset Dependent On It
                 if (offset.OffsetType == OffsetType.UIntPtr)
@@ -196,8 +182,7 @@ namespace ExternalMemory
             if (address.ToUInt64() <= 0)
             {
                 // Clear All Class Offset
-                List<ExternalOffset> unrealOffsets = instance.Offsets;
-                RemoveValueData(unrealOffsets);
+                RemoveValueData(instance.Offsets);
                 return false;
             }
 
@@ -205,8 +190,7 @@ namespace ExternalMemory
             if (!ReadBytes(address, (uint)instance.ClassSize, out byte[] fullClassBytes))
             {
                 // Clear All Class Offset
-                List<ExternalOffset> unrealOffsets = instance.Offsets;
-                RemoveValueData(unrealOffsets);
+                RemoveValueData(instance.Offsets);
                 return false;
             }
 

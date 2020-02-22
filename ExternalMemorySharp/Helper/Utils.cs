@@ -26,23 +26,25 @@ namespace ExternalMemory.Helper
 
             return false;
         }
-        internal static int GetDependenciesSize(ExternalOffset dependency, IEnumerable<ExternalOffset> offsets)
+        internal static int GetDependenciesSize(ExternalOffset dependency, List<ExternalOffset> offsets)
         {
-            List<ExternalOffset> unrealOffsets = offsets.Where(f => f != null).ToList();
-
             // If Empty Then It's Usually Dynamic Pointer (Like `Data` Member In `TArray`)
-            List<ExternalOffset> d = unrealOffsets.Where(off => off.Dependency == dependency).ToList();
-            if (!d.Any())
+            List<ExternalOffset> dOffsets = offsets.Where(off => off.Dependency == dependency).ToList();
+            if (!dOffsets.Any())
                 return 0;
 
             // Get Biggest Offset
-            int biggestOffset = d.Max(unrealOffset => unrealOffset.Offset);
+            int biggestOffset = dOffsets.Max(unrealOffset => unrealOffset.Offset);
 
             // Get Offset
-            ExternalOffset offset = unrealOffsets.Find(off => off.Dependency == dependency && off.Offset == biggestOffset);
+            ExternalOffset offset = offsets.Find(off => off.Dependency == dependency && off.Offset == biggestOffset);
 
             // Get Size Of Data
-            int valueSize = offset.Size;
+            int valueSize = offset.OffsetType switch
+            {
+	            OffsetType.String => ExternalMemorySharp.MaxStringLen,
+                _ => offset.Size
+            };
 
             return biggestOffset + valueSize;
         }
