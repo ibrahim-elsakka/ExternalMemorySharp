@@ -1,2 +1,5 @@
 language: csharp
 solution: ExternalMemorySharp.sln
+dotnet: 3.1.102
+script:
+ - dotnet restore
