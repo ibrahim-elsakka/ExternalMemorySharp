@@ -11,11 +11,11 @@ namespace ExternalMemory.Helper
             public IntPtr UnManagedPtr { get; private set; }
             public TStruct ManagedStruct { get; private set; }
 
-            public StructAllocer()
+            public StructAllocator()
             {
                 UnManagedPtr = Marshal.AllocHGlobal(Marshal.SizeOf<TStruct>());
             }
-            ~StructAllocer()
+            ~StructAllocator()
             {
                 if (UnManagedPtr == IntPtr.Zero)
                     return;
@@ -43,7 +43,7 @@ namespace ExternalMemory.Helper
                 GC.SuppressFinalize(this);
             }
 
-            public static implicit operator IntPtr(StructAllocer<TStruct> w)
+            public static implicit operator IntPtr(StructAllocator<TStruct> w)
             {
                 return w.UnManagedPtr;
             }
@@ -61,14 +61,14 @@ namespace ExternalMemory.Helper
             public StringType StrType { get; }
             public string ManagedString { get; private set; }
 
-            public StringAllocer(int len, StringType stringType)
+            public StringAllocator(int len, StringType stringType)
             {
                 StrType = stringType;
                 Length = StrType == StringType.Ansi ? len : len * 2;
                 Ptr = Marshal.AllocHGlobal(Length);
             }
 
-            ~StringAllocer()
+            ~StringAllocator()
             {
                 // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
                 Dispose(false);
@@ -108,12 +108,12 @@ namespace ExternalMemory.Helper
                 return true;
             }
 
-            public static implicit operator IntPtr(StringAllocer w)
+            public static implicit operator IntPtr(StringAllocator w)
             {
                 return w.Ptr;
             }
 
-            public static implicit operator string(StringAllocer w)
+            public static implicit operator string(StringAllocator w)
             {
                 return w.ManagedString;
             }
